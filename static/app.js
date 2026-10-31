@@ -4,7 +4,8 @@ tg?.expand();
 
 const $ = (s, el = document) => el.querySelector(s);
 const view = $("#view");
-const state = { me: null, tab: "us", wishSide: "mine" };
+const START_TAB = new URLSearchParams(location.search).get("tab");
+const state = { me: null, tab: ["us", "wishes", "mood", "goals", "bucket"].includes(START_TAB) ? START_TAB : "us", wishSide: "mine" };
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const money = (n) => `${Number(n || 0).toLocaleString("ru-RU")} ₸`;
@@ -79,6 +80,7 @@ async function boot() {
   $("#title").textContent = state.me.title + " 💞";
   if (!state.me.couple || !state.me.partner) return renderOnboarding();
   $("#tabs").hidden = false;
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("active", x.dataset.tab === state.tab));
   updateSubtitle();
   render();
 }

@@ -20,11 +20,12 @@ dp = Dispatcher()
 UPLOADS = config.BASE_DIR / "data" / "uploads"
 
 
-def open_app_kb(text: str = "💞 Открыть") -> InlineKeyboardMarkup | None:
+def open_app_kb(text: str = "💞 Открыть", tab: str | None = None) -> InlineKeyboardMarkup | None:
     if not config.WEBAPP_URL:
         return None
+    url = f"{config.WEBAPP_URL}/?tab={tab}" if tab else config.WEBAPP_URL
     return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text=text, web_app=WebAppInfo(url=config.WEBAPP_URL))
+        InlineKeyboardButton(text=text, web_app=WebAppInfo(url=url))
     ]])
 
 
@@ -68,12 +69,12 @@ async def setup_bot() -> None:
     )
 
 
-async def notify(user_id: int, text: str) -> None:
+async def notify(user_id: int, text: str, button: str = "💞 Открыть", tab: str | None = None) -> None:
     if not bot:
         log.info("notify %s: %s", user_id, text)
         return
     try:
-        await bot.send_message(user_id, text, reply_markup=open_app_kb())
+        await bot.send_message(user_id, text, reply_markup=open_app_kb(button, tab))
     except Exception as e:  # партнёр мог не нажать /start или заблокировать бота
         log.warning("notify failed for %s: %s", user_id, e)
 

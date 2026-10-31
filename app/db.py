@@ -103,6 +103,13 @@ class BucketItem(Base):
     photo_file_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
 
+class SentLog(Base):
+    """Какие рассылки уже ушли (защита от повторного запуска cron)"""
+    __tablename__ = "sent_log"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    sent_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -114,4 +121,4 @@ async def get_session():
 
 
 __all__ = ["AsyncSession", "Session", "init_db", "get_session", "Couple", "User", "Moment",
-           "Wish", "Mood", "Goal", "Deposit", "BucketItem"]
+           "Wish", "Mood", "Goal", "Deposit", "BucketItem", "SentLog"]

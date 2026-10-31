@@ -32,3 +32,5 @@ DEV_USER_NAME = os.getenv("DEV_USER_NAME", "Dev")
 
 APP_TITLE = os.getenv("APP_TITLE", "Арлан & Настя")
 TIMEZONE = os.getenv("TIMEZONE", "Asia/Almaty")
+# Секрет для ссылки рассылки (её дёргает cron-job.org). Придумай любой длинный набор символов.
+CRON_SECRET = os.getenv("CRON_SECRET", "")

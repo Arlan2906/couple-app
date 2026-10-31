@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config
 from .api import router
+from .reminders import router as reminders_router
 from .bot import bot, dp, setup_bot
 from .db import init_db
 
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=config.APP_TITLE, lifespan=lifespan)
 app.include_router(router)
+app.include_router(reminders_router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -63,7 +65,7 @@ async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: st
     return {"ok": True}
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def index():
     return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})
 
