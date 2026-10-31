@@ -38,34 +38,39 @@ static/      — Mini App (HTML/CSS/JS, без сборки)
 1. В Telegram открой **@BotFather** → `/newbot` → придумай имя и username.
 2. Скопируй токен. **Никому его не отправляй** — он даёт полный доступ к боту.
 
-## 2. Запустить на Railway
+## 2. База данных на Neon (бесплатно, без срока)
 
-1. Залей папку на **GitHub** (приватный репозиторий):
-   ```bash
-   git init && git add . && git commit -m "init"
-   git branch -M main
-   git remote add origin https://github.com/<твой-ник>/couple-app.git
-   git push -u origin main
-   ```
-2. На **railway.com** → New Project → Deploy from GitHub repo → выбери репозиторий.
-3. В проекте нажми **+ New → Database → PostgreSQL**.
-   ⚠️ Обязательно: без Postgres данные на Railway пропадут при каждом обновлении.
-4. В сервисе приложения → **Settings → Networking → Generate Domain**. Получишь адрес вида `https://couple-app-production.up.railway.app`.
-5. В сервисе приложения → **Variables** добавь:
+1. **neon.tech** → Sign up with GitHub → создай проект (регион — Frankfurt).
+2. На главной проекта нажми **Connect** → скопируй строку подключения вида
+   `postgresql://...@ep-....neon.tech/neondb?sslmode=require`.
+
+## 3. Запустить на Render
+
+1. **render.com** → Sign up with GitHub.
+2. **New → Web Service** → выбери репозиторий `couple-app`.
+3. Настройки (большинство подставятся сами):
+   - Runtime: **Python**, Region: **Frankfurt**, Instance type: **Free**
+   - Build command: `pip install -r requirements.txt`
+   - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. **Environment Variables**:
    | Переменная | Значение |
    |---|---|
    | `BOT_TOKEN` | токен из BotFather |
-   | `WEBAPP_URL` | адрес из шага 4 |
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (Railway подставит сам) |
+   | `DATABASE_URL` | строка из Neon |
+   | `WEBAPP_URL` | адрес сервиса, например `https://couple-app-xxxx.onrender.com` (виден вверху страницы сервиса; если его ещё нет — добавь после первого деплоя) |
+   | `PYTHON_VERSION` | `3.12.8` |
    | `APP_TITLE` | `Арлан & Настя` |
-6. Railway перезапустит сервис. Проверь `https://<адрес>/health` — должно быть `{"ok":true}`.
+5. **Create Web Service**. Через пару минут открой `https://<адрес>/health` — должно быть `{"ok":true}`.
 
-## 3. Привязать Mini App к боту
+На Render бот сам работает через webhook (Telegram будит сервер). Бесплатный сервис засыпает через 15 минут
+без запросов — первое открытие после паузы грузится ~1 минуту, дальше быстро.
+
+## 4. Привязать Mini App к боту
 
 В @BotFather: `/mybots` → твой бот → **Bot Settings → Configure Mini App → Enable Mini App** → вставь `WEBAPP_URL`.
 (Кнопка меню «💞 Мы» в чате с ботом выставляется автоматически при запуске.)
 
-## 4. Связаться в пару
+## 5. Связаться в пару
 
 1. Ты пишешь боту `/start` → открываешь приложение → **«Создать нашу пару»** → **«Отправить приглашение»**.
 2. Настя открывает ссылку → жмёт **Start** → вы связаны, тебе придёт уведомление.
@@ -89,7 +94,7 @@ uvicorn app.main:app --reload
 
 ## Стоимость
 
-Railway Hobby — $5/мес (в них уже входит $5 использования; для двоих людей этого хватает с запасом). Первый месяц можно на пробных кредитах.
+Render Free + Neon Free — 0 ₸. Если надоест ждать «просыпания», можно переехать на платный тариф или свой VPS: данные останутся в Neon.
 
 ## Идеи на потом
 

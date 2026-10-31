@@ -5,12 +5,15 @@ from sqlalchemy import (BigInteger, Boolean, Date, DateTime, ForeignKey, Integer
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from .config import BASE_DIR, DATABASE_URL
+from .config import BASE_DIR, DATABASE_URL, DB_SSL
 
 if DATABASE_URL.startswith("sqlite"):
     (BASE_DIR / "data").mkdir(exist_ok=True)
-
-engine = create_async_engine(DATABASE_URL, echo=False)
+    engine = create_async_engine(DATABASE_URL, echo=False)
+else:
+    # pool_pre_ping: Neon засыпает и рвёт соединения — проверяем перед использованием
+    engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True, pool_recycle=240,
+                                 connect_args={"ssl": True} if DB_SSL else {})
 Session = async_sessionmaker(engine, expire_on_commit=False)
 
 
