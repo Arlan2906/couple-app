@@ -72,6 +72,8 @@ async def me(user: User = Depends(current_user), s: AsyncSession = Depends(get_s
         "couple": {
             "code": couple.code,
             "started_on": started.isoformat() if started else None,
+            "started_time": couple.started_time,
+            "tz_offset_min": int(datetime.now(TZ).utcoffset().total_seconds() // 60),
             "days_together": (today() - started).days + 1 if started else None,
             "invite_link": f"https://t.me/{username}?start=join_{couple.code}" if username else None,
         } if couple else None,
@@ -112,12 +114,14 @@ async def pair_join(body: JoinIn, user: User = Depends(current_user), s: AsyncSe
 
 class CoupleIn(BaseModel):
     started_on: date | None
+    started_time: str | None = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 @router.patch("/couple")
 async def couple_update(body: CoupleIn, user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
     couple = await s.get(Couple, user.couple_id)
     couple.started_on = body.started_on
+    couple.started_time = body.started_time
     await s.commit()
     return {"ok": True}
 

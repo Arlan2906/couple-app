@@ -148,21 +148,77 @@ function renderOnboarding() {
   };
 }
 
+/* ---------- живой счётчик «сколько мы вместе» ---------- */
+const TICK_UNITS = [
+  ["y", ["год", "года", "лет"]], ["mo", ["месяц", "месяца", "месяцев"]], ["d", ["день", "дня", "дней"]],
+  ["h", ["час", "часа", "часов"]], ["mi", ["минута", "минуты", "минут"]], ["s", ["секунда", "секунды", "секунд"]],
+];
+const daysInMonth = (y, m) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); // m: 0..11
+
+// Календарная разница: годы, месяцы, дни, часы, минуты, секунды. Всё считается во «времени Алматы».
+// Сначала прибавляем к началу максимум целых месяцев (31 янв + 1 мес = 28/29 фев), остаток делим на дни/часы/минуты.
+function addMonthsUTC(t, n) {
+  const y = t.getUTCFullYear() + Math.floor((t.getUTCMonth() + n) / 12), m = (((t.getUTCMonth() + n) % 12) + 12) % 12;
+  const day = Math.min(t.getUTCDate(), daysInMonth(y, m));
+  return new Date(Date.UTC(y, m, day, t.getUTCHours(), t.getUTCMinutes(), t.getUTCSeconds()));
+}
+function togetherDiff(c) {
+  const off = (c.tz_offset_min ?? 300) * 60000;
+  const [Y, M, D] = c.started_on.split("-").map(Number);
+  const [hh, mm] = (c.started_time || "00:00").split(":").map(Number);
+  const a = new Date(Date.UTC(Y, M - 1, D, hh, mm, 0));          // начало, локальное время в UTC-полях
+  const b = new Date(Date.now() + off);                            // сейчас, тоже в локальных полях
+  if (b < a) return { y: 0, mo: 0, d: 0, h: 0, mi: 0, s: 0 };
+  let months = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+  let anchor = addMonthsUTC(a, months);
+  while (anchor > b) anchor = addMonthsUTC(a, --months);
+  let rest = Math.floor((b - anchor) / 1000);
+  const s = rest % 60; rest = Math.floor(rest / 60);
+  const mi = rest % 60; rest = Math.floor(rest / 60);
+  const h = rest % 24; const d = Math.floor(rest / 24);
+  return { y: Math.floor(months / 12), mo: months % 12, d, h, mi, s };
+}
+
+function startTicker() {
+  clearInterval(startTicker._t);
+  const c = state.me.couple;
+  if (!c?.started_on || !$("#ticker")) return;
+  const tick = () => {
+    const el = $("#ticker");
+    if (!el) return clearInterval(startTicker._t); // ушли с вкладки
+    const v = togetherDiff(c);
+    for (const [k, forms] of TICK_UNITS) {
+      $(`[data-u="${k}"]`, el).textContent = String(v[k]).padStart(k === "y" || k === "mo" || k === "d" ? 1 : 2, "0");
+      $(`[data-l="${k}"]`, el).textContent = plural(v[k], ...forms);
+    }
+  };
+  tick();
+  startTicker._t = setInterval(tick, 1000);
+}
+
 /* ---------- 🏠 Мы ---------- */
 async function renderUs() {
   const items = await api("/api/moments");
   const c = state.me.couple;
   const hero = c.days_together
-    ? `<div class="big">${c.days_together}</div><div class="lbl">${plural(c.days_together, "день", "дня", "дней")} вместе · с ${fmtDate(c.started_on)}</div><button class="small" id="setDate">Изменить дату</button>`
+    ? `<div class="big">${c.days_together}</div><div class="lbl">${plural(c.days_together, "день", "дня", "дней")} вместе · с ${fmtDate(c.started_on)}${c.started_time ? `, ${c.started_time}` : ""}</div>
+       <div class="ticker" id="ticker">${TICK_UNITS.map((u) => `<div><b data-u="${u[0]}">0</b><span data-l="${u[0]}"></span></div>`).join("")}</div>
+       <button class="small" id="setDate">Изменить дату</button>`
     : `<div class="lbl" style="font-size:17px">С какого дня вы вместе?</div><button class="small" id="setDate">Указать дату 💞</button>`;
   view.innerHTML = `
     <div class="hero">${hero}</div>
     <h2>Наши моменты <small>${items.length || ""}</small></h2>
     ${items.length ? `<div class="timeline">${items.map(momentCard).join("")}</div>`
       : `<div class="empty"><span class="e">📸</span>Добавьте первый момент — первое свидание, смешной случай, любое «помнишь?»</div>`}`;
+  startTicker();
   $("#setDate").onclick = () => openSheet(
-    `<h3>Начало истории</h3><label>Дата</label><input type="date" name="d" value="${c.started_on || ""}" max="${todayIso()}" required>`,
-    async (f) => { await api("/api/couple", { method: "PATCH", json: { started_on: f.d.value } }); state.me = await api("/api/me"); updateSubtitle(); }
+    `<h3>Начало истории</h3>
+     <label>Дата</label><input type="date" name="d" value="${c.started_on || ""}" max="${todayIso()}" required>
+     <label>Время (по желанию — для точного счётчика)</label><input type="time" name="t" value="${c.started_time || ""}">`,
+    async (f) => {
+      await api("/api/couple", { method: "PATCH", json: { started_on: f.d.value, started_time: f.t.value || null } });
+      state.me = await api("/api/me"); updateSubtitle();
+    }
   );
   view.querySelectorAll("[data-del-moment]").forEach((b) => (b.onclick = async () => {
     if (!(await confirmAsk("Удалить этот момент?"))) return;

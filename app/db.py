@@ -26,6 +26,7 @@ class Couple(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
     started_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    started_time: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "HH:MM" по Алматы
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
