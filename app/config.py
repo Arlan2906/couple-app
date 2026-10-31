@@ -9,7 +9,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 # Публичный HTTPS-адрес, где открыт Mini App (например https://xxx.up.railway.app)
-WEBAPP_URL = os.getenv("WEBAPP_URL", "").rstrip("/")
+# Render сам задаёт RENDER_EXTERNAL_URL — тогда WEBAPP_URL можно не указывать
+WEBAPP_URL = (os.getenv("WEBAPP_URL") or os.getenv("RENDER_EXTERNAL_URL") or "").rstrip("/")
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip() or f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'couple.db'}"
 DB_SSL = False
 # Neon/Render/Railway отдают postgres(ql)://...?sslmode=require — asyncpg эти параметры не понимает

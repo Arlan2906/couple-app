@@ -57,8 +57,7 @@ static/      — Mini App (HTML/CSS/JS, без сборки)
    |---|---|
    | `BOT_TOKEN` | токен из BotFather |
    | `DATABASE_URL` | строка из Neon |
-   | `WEBAPP_URL` | адрес сервиса, например `https://couple-app-xxxx.onrender.com` (виден вверху страницы сервиса; если его ещё нет — добавь после первого деплоя) |
-   | `PYTHON_VERSION` | `3.12.8` |
+      | `PYTHON_VERSION` | `3.12.8` |
    | `APP_TITLE` | `Арлан & Настя` |
 5. **Create Web Service**. Через пару минут открой `https://<адрес>/health` — должно быть `{"ok":true}`.
 
