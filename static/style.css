@@ -244,3 +244,57 @@ textarea { resize: vertical; min-height: 70px; }
 .more-item .mi svg { width: 30px; height: 30px; }
 .heart { font-size: 15px; font-weight: 800; color: #fff; background: rgba(0,0,0,.18); padding: 4px 10px; border-radius: 10px; transform: translateX(-50%); white-space: nowrap; }
 @keyframes floatUp { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, -90px); opacity: 0; } }
+
+/* воспоминание питомца */
+.memory { display: flex; gap: 12px; align-items: center; margin-top: 12px; border-left: 4px solid #8f7bff; }
+.memory img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex: none; }
+.mem-who { font-size: 12px; font-weight: 800; color: #8f7bff; text-transform: uppercase; letter-spacing: .4px; }
+.mem-text { font-weight: 700; margin-top: 2px; }
+
+/* дом питомца */
+.rooms { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.rooms button { flex: none; background: var(--card); color: var(--text); box-shadow: var(--shadow); padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+.rooms button.on { background: var(--accent); color: #fff; }
+.rooms button.locked { color: var(--hint); }
+.rooms button svg { width: 14px; height: 14px; }
+.rooms button small { font-size: 11px; opacity: .8; }
+.scene { position: relative; height: 230px; border-radius: 20px; margin: 10px 0; overflow: hidden; box-shadow: var(--shadow); }
+.scene::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34%; background: rgba(0,0,0,.06); }
+.room-living { background: linear-gradient(#ffe9df 0 66%, #e8c6a8 66%); }
+.room-kitchen { background: linear-gradient(#e3f4ec 0 66%, #cfd8dc 66%); }
+.room-garden { background: linear-gradient(#cdeeff 0 58%, #a8dd8f 58%); }
+.room-attic { background: linear-gradient(#2d2a55 0 66%, #6b4f3a 66%); }
+.thing { position: absolute; transform: translate(-50%, -50%); font-size: 40px; line-height: 1; z-index: 1; filter: drop-shadow(0 3px 3px rgba(0,0,0,.12)); }
+.thing.ghost { width: 40px; height: 40px; border: 2px dashed rgba(120,100,110,.45); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: rgba(120,100,110,.6); filter: none; }
+.room-attic .thing.ghost { border-color: rgba(255,255,255,.35); color: rgba(255,255,255,.5); }
+.thing.ghost svg { width: 16px; height: 16px; }
+.resident { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); font-size: 54px; z-index: 2; animation: idle 2.6s ease-in-out infinite; }
+.frames { position: absolute; top: 10%; left: 26%; right: 26%; display: flex; justify-content: center; gap: 10px; z-index: 1; }
+.frame { width: 54px; height: 64px; background: #fff; border: 4px solid #8a5a3c; border-radius: 4px; overflow: hidden; box-shadow: 0 3px 8px rgba(0,0,0,.15); }
+.frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.frame.locked { background: transparent; border: 2px dashed rgba(120,100,110,.45); display: flex; align-items: center; justify-content: center; color: rgba(120,100,110,.6); }
+.frame.locked svg { width: 16px; height: 16px; }
+.items-list .item-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(150,120,130,.12); font-weight: 700; }
+.items-list .item-row:last-child { border-bottom: 0; }
+.items-list .item-row.locked .grow { color: var(--hint); }
+.items-list .item-row .muted { text-align: right; font-weight: 600; }
+
+/* Несказанное */
+.intro { margin: -4px 4px 12px; }
+.note .note-text { white-space: pre-wrap; margin: 10px 0; font-size: 15.5px; }
+.note.sealed { background: linear-gradient(135deg, #fff, #fff0f4); text-align: center; }
+.note .seal { font-weight: 800; font-size: 17px; margin: 14px 0; }
+.note .reacts { display: flex; flex-wrap: wrap; gap: 6px; }
+.note-status { font-size: 13px; font-weight: 700; color: var(--hint); }
+.note-status.warm { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { margin: 0; }
+.chip input { display: none; }
+.chip span { display: inline-block; padding: 8px 12px; border-radius: 12px; background: var(--bg); color: var(--text); font-weight: 700; font-size: 13px; }
+.chip input:checked + span { background: var(--accent); color: #fff; }
+.badge { position: relative; }
+.badge::after { content: ""; position: absolute; top: 4px; right: calc(50% - 18px); width: 9px; height: 9px; border-radius: 50%; background: var(--accent); border: 2px solid var(--card); }
+.more-item.badge::after { top: 12px; right: 12px; }
+.items-list .item-row { flex-wrap: wrap; row-gap: 2px; }
+.items-list .item-row.locked .muted { flex-basis: 100%; text-align: left; font-size: 12.5px; }
+.resident { bottom: 4%; }

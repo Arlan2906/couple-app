@@ -65,9 +65,11 @@ async def me(user: User = Depends(current_user), s: AsyncSession = Depends(get_s
     partner = await partner_of(s, user)
     started = couple.started_on if couple else None
     username = await bot_username()
+    from .notes import unread_count  # локальный импорт: notes → pet → api не должно зацикливаться
     return {
         "id": user.id,
         "name": user.name,
+        "unread_notes": await unread_count(s, user) if user.couple_id else 0,
         "title": config.APP_TITLE,
         "partner": {"id": partner.id, "name": partner.name} if partner else None,
         "couple": {

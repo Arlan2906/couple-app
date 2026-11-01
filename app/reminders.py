@@ -16,6 +16,7 @@ from .api import today
 from .bot import notify
 from .db import Mood, SentLog, Session, User
 from .pet import hungry_line
+from .house import memory_line
 
 router = APIRouter()
 
@@ -53,6 +54,8 @@ async def mood_reminder(slot: str, key: str = "", force: bool = False):
             continue
         async with Session() as s:
             pet_line = await hungry_line(s, couple_id)
+            if slot == "morning":
+                pet_line = await memory_line(s, couple_id, d) + pet_line
         for u in members:
             partner = next(m for m in members if m.id != u.id)
             text = TEXTS[slot].format(name=u.name)

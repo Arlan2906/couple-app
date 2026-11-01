@@ -127,6 +127,29 @@ class PetAction(Base):
     at: Mapped[datetime] = mapped_column(DateTime)
 
 
+class Note(Base):
+    """«Несказанное» — личные записки партнёру"""
+    __tablename__ = "notes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    couple_id: Mapped[int] = mapped_column(ForeignKey("couples.id"), index=True)
+    author_id: Mapped[int] = mapped_column(BigInteger)
+    recipient_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    kind: Mapped[str] = mapped_column(String(16))          # thanks | worry | talk | other
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reaction: Mapped[str | None] = mapped_column(String(16), nullable=True)  # hug | talk | thanks
+
+
+class PetUnlock(Base):
+    """Что уже открыто в доме питомца (чтобы сообщать только о новом)"""
+    __tablename__ = "pet_unlocks"
+    __table_args__ = (UniqueConstraint("pet_id", "item_id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[str] = mapped_column(String(32))
+
+
 class SentLog(Base):
     """Какие рассылки уже ушли (защита от повторного запуска cron)"""
     __tablename__ = "sent_log"
@@ -145,4 +168,4 @@ async def get_session():
 
 
 __all__ = ["AsyncSession", "Session", "init_db", "get_session", "Couple", "User", "Moment",
-           "Wish", "Mood", "Goal", "Deposit", "BucketItem", "SentLog", "Pet", "PetAction"]
+           "Wish", "Mood", "Goal", "Deposit", "BucketItem", "SentLog", "Pet", "PetAction", "Note", "PetUnlock"]

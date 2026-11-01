@@ -5,7 +5,7 @@ tg?.expand();
 const $ = (s, el = document) => el.querySelector(s);
 const view = $("#view");
 const START_TAB = new URLSearchParams(location.search).get("tab");
-const state = { me: null, tab: ["us", "pet", "wishes", "mood", "more", "goals", "bucket"].includes(START_TAB) ? START_TAB : "us", wishSide: "mine" };
+const state = { me: null, tab: ["us", "pet", "wishes", "mood", "more", "notes", "goals", "bucket"].includes(START_TAB) ? START_TAB : "us", wishSide: "mine" };
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const money = (n) => `${Number(n || 0).toLocaleString("ru-RU")} ₸`;
@@ -81,6 +81,7 @@ async function boot() {
   if (!state.me.couple || !state.me.partner) return renderOnboarding();
   $("#tabs").hidden = false;
   highlightTab();
+  updateBadges();
   updateSubtitle();
   render();
 }
@@ -95,10 +96,12 @@ function updateSubtitle() {
 /* ---------- навигация: 4 главные вкладки + «Ещё» ---------- */
 // Чтобы добавить новый раздел в меню «Ещё», допиши его сюда и добавь render-функцию в RENDERERS.
 const MORE_SECTIONS = [
+  { tab: "notes", icon: "letter", title: "Несказанное", desc: "То, что сложно сказать вслух" },
   { tab: "goals", icon: "wallet", title: "Копилка", desc: "Копим вместе на цели" },
   { tab: "bucket", icon: "check", title: "Мечты", desc: "Что хотим сделать вместе" },
 ];
 const MORE_ICONS = {
+  letter: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>`,
   wallet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>`,
 };
@@ -127,7 +130,7 @@ function renderMore() {
   view.innerHTML = `
     <h2>Ещё</h2>
     <div class="more-grid">
-      ${MORE_SECTIONS.map((x) => `<button class="more-item" data-go="${x.tab}"><span class="mi">${MORE_ICONS[x.icon]}</span><b>${x.title}</b><small>${x.desc}</small></button>`).join("")}
+      ${MORE_SECTIONS.map((x) => `<button class="more-item ${x.tab === "notes" && state.me?.unread_notes ? "badge" : ""}" data-go="${x.tab}"><span class="mi">${MORE_ICONS[x.icon]}</span><b>${x.title}</b><small>${x.desc}</small></button>`).join("")}
     </div>`;
   view.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { haptic(); goTo(b.dataset.go); }));
 }
@@ -142,7 +145,7 @@ function backLink() {
 }
 
 const RENDERERS = { us: () => renderUs(), pet: () => renderPet(), wishes: () => renderWishes(), mood: () => renderMood(),
-  more: () => renderMore(), goals: () => renderGoals(), bucket: () => renderBucket() };
+  more: () => renderMore(), notes: () => renderNotes(), goals: () => renderGoals(), bucket: () => renderBucket() };
 
 async function render() {
   const fn = RENDERERS[state.tab] || renderUs;
@@ -446,7 +449,13 @@ const cdText = (sec) => (sec >= 3600 ? `через ${Math.floor(sec / 3600)} ч 
 async function renderPet() {
   const data = await api("/api/pet");
   if (!data.pet) return renderPetPicker(data.kinds);
+  state.house = await api("/api/pet/house").catch(() => null);
   drawPet(data.pet);
+}
+
+async function refreshHouse(p) {
+  state.house = await api("/api/pet/house").catch(() => state.house);
+  if (state.tab === "pet") drawPet(p);
 }
 
 function renderPetPicker(kinds) {
@@ -470,7 +479,7 @@ function renderPetPicker(kinds) {
     const name = $("#petName").value.trim();
     if (!name) return toast("Придумайте имя");
     const d = await api("/api/pet", { method: "POST", json: { kind: picked, name } });
-    success(); drawPet(d.pet);
+    success(); refreshHouse(d.pet);
   };
 }
 
@@ -499,11 +508,14 @@ function drawPet(p) {
     <div class="pet-actions">
       ${egg ? btn("pet", "Согреть") : btn("feed", "Покормить") + btn("pet", "Погладить")}
     </div>
+    ${memoryHtml(p)}
+    ${houseHtml(p)}
     <h2>Как ${esc(p.name)} растёт</h2>
     <div class="card muted grow-list">
       <div>Отметить настроение — <b>+10</b> (оба за день — ещё <b>+10</b>)</div>
       <div>Новый момент — <b>+15</b></div>
       <div>Сбывшаяся мечта — <b>+40</b></div>
+      <div>Записка в «Несказанном» — <b>+10</b></div>
       <div>Пополнить копилку, новое желание, новая мечта — <b>+5</b></div>
       <div>Покормить, погладить — <b>+3</b> (у каждого своя перезарядка)</div>
     </div>
@@ -514,12 +526,17 @@ function drawPet(p) {
     try {
       const d = await api(`/api/pet/${b.dataset.act}`, { method: "POST" });
       success(); hearts(b.dataset.act === "feed" ? "+22 сытость" : "+12 радость", 1);
-      setTimeout(() => drawPet(d.pet), 700);
+      setTimeout(() => refreshHouse(d.pet), 700);
     } catch { b.disabled = false; }
   }));
   $("#petTap").onclick = () => {
     haptic("soft"); const e = $(".pet-emoji"); e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing");
   };
+  view.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => {
+    const r = state.house?.house?.rooms.find((x) => x.id === b.dataset.room);
+    if (!r?.unlocked) return toast(`Откроется на ${r.level} уровне`);
+    haptic(); state.room = r.id; drawPet(p);
+  }));
   $("#rename").onclick = () => openSheet(
     `<h3>Новое имя</h3><label>Имя</label><input name="n" maxlength="40" value="${esc(p.name)}" required>`,
     async (f) => { await api("/api/pet", { method: "PATCH", json: { name: f.n.value } }); }
@@ -535,6 +552,130 @@ function hearts(ch, n = 5) {
     h.style.left = "50%"; h.style.animationDelay = `${i * 90}ms`;
     stage.appendChild(h); setTimeout(() => h.remove(), 1400);
   }
+}
+
+/* ---------- дом питомца и воспоминания ---------- */
+const LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+
+function memoryHtml(p) {
+  const m = state.house?.memory;
+  if (!m || p.stage === "egg") return "";
+  return `
+    <div class="card memory">
+      ${m.photo ? `<img src="${photoUrl(m.photo)}" alt="">` : ""}
+      <div><div class="mem-who">${esc(p.name)} вспоминает</div><div class="mem-text">${esc(m.text)}</div></div>
+    </div>`;
+}
+
+function houseHtml(p) {
+  const h = state.house?.house;
+  if (!h) return "";
+  if (p.stage === "egg") return `<h2>Дом</h2><div class="card muted">Дом откроется, когда ${esc(p.name)} вылупится.</div>`;
+  const room = h.rooms.find((r) => r.id === state.room && r.unlocked) || h.rooms[0];
+  state.room = room.id;
+  const items = room.items;
+  const got = items.filter((i) => i.unlocked).length + (room.id === "living" ? h.frames.filter((f) => f.unlocked).length : 0);
+  const total = items.length + (room.id === "living" ? h.frames.length : 0);
+  const frames = room.id === "living" ? `<div class="frames">${h.frames.map((f) =>
+    f.unlocked ? `<div class="frame">${f.photo ? `<img src="${photoUrl(f.photo)}" alt="">` : ""}</div>` : `<div class="frame locked">${LOCK}</div>`).join("")}</div>` : "";
+  return `
+    <h2>Дом <small>${got} из ${total}</small></h2>
+    <div class="rooms">${h.rooms.map((r) => `<button data-room="${r.id}" class="${r.id === room.id ? "on" : ""} ${r.unlocked ? "" : "locked"}">${r.unlocked ? "" : LOCK}${esc(r.name)}${r.unlocked ? "" : `<small>ур. ${r.level}</small>`}</button>`).join("")}</div>
+    <div class="scene room-${room.id}">
+      ${frames}
+      ${items.map((i) => i.unlocked
+        ? `<span class="thing" style="left:${i.x}%;top:${i.y}%" title="${esc(i.name)}">${i.emoji}</span>`
+        : `<span class="thing ghost" style="left:${i.x}%;top:${i.y}%">${LOCK}</span>`).join("")}
+      <span class="resident">${p.emoji}</span>
+    </div>
+    <div class="card items-list">
+      ${room.id === "living" ? h.frames.map((f) => itemRow(f.name, f.unlocked, f.hint)).join("") : ""}
+      ${items.map((i) => itemRow(i.name, i.unlocked, i.hint, i.progress, i.need)).join("")}
+    </div>`;
+}
+
+const itemRow = (name, unlocked, hint, progress, need) => `
+  <div class="item-row ${unlocked ? "" : "locked"}">
+    <span class="grow">${esc(name)}</span>
+    ${unlocked ? `<span class="tag ok">есть</span>` : `<span class="muted">${esc(hint)}${need > 1 ? ` · ${progress}/${need}` : ""}</span>`}
+  </div>`;
+
+/* ---------- Несказанное ---------- */
+const NOTE_KINDS = { thanks: "Благодарность", worry: "Переживание", talk: "Хочу обсудить", other: "Просто так" };
+const REACTIONS = { hug: "Обнять", talk: "Давай поговорим", thanks: "Спасибо, что сказал(а)" };
+const REACTED = { hug: "обнимает тебя", talk: "готов(а) поговорить", thanks: "благодарит, что поделился(лась)" };
+
+async function renderNotes() {
+  const data = await api("/api/notes");
+  const p = state.me.partner.name;
+  state.notesSide = state.notesSide || (data.inbox.some((n) => !n.read) ? "inbox" : "inbox");
+  const list = state.notesSide === "inbox" ? data.inbox : data.sent;
+  const unread = data.inbox.filter((n) => !n.read).length;
+  view.innerHTML = `
+    <h2>Несказанное</h2>
+    <p class="muted intro">То, что сложно сказать вслух: благодарность, переживание или то, что давно хотелось обсудить. Записку увидит только ${esc(p)}.</p>
+    <div class="seg"><button data-nside="inbox" class="${state.notesSide === "inbox" ? "on" : ""}">Мне${unread ? ` · ${unread}` : ""}</button><button data-nside="sent" class="${state.notesSide === "sent" ? "on" : ""}">Мои</button></div>
+    <div style="margin-top:10px">
+      ${list.length ? list.map((n) => (n.inbox ? inboxNote(n, p) : sentNote(n, p))).join("")
+        : `<div class="empty">${state.notesSide === "inbox" ? `Пока пусто. Когда ${esc(p)} что-то напишет, придёт уведомление.` : "Ты ещё ничего не написал(а)."}</div>`}
+    </div>`;
+  view.querySelectorAll("[data-nside]").forEach((b) => (b.onclick = () => { haptic(); state.notesSide = b.dataset.nside; render(); }));
+  view.querySelectorAll("[data-open]").forEach((b) => (b.onclick = async () => {
+    await api(`/api/notes/${b.dataset.open}/read`, { method: "POST" });
+    haptic("medium"); state.me = await api("/api/me"); updateBadges(); render();
+  }));
+  view.querySelectorAll("[data-react]").forEach((b) => (b.onclick = async () => {
+    const [id, r] = b.dataset.react.split(":");
+    await api(`/api/notes/${id}/react`, { method: "POST", json: { reaction: r } });
+    success(); toast(`${p} получит ответ`); render();
+  }));
+  view.querySelectorAll("[data-del-note]").forEach((b) => (b.onclick = async () => {
+    if (!(await confirmAsk("Удалить записку? Она исчезнет и у второго человека."))) return;
+    await api(`/api/notes/${b.dataset.delNote}`, { method: "DELETE" }); render();
+  }));
+  fab(() => {
+    openSheet(`
+      <h3>Новая записка</h3>
+      <label>О чём</label>
+      <div class="chips">${Object.entries(NOTE_KINDS).map(([k, v], i) => `<label class="chip"><input type="radio" name="kind" value="${k}" ${i === 0 ? "checked" : ""}><span>${v}</span></label>`).join("")}</div>
+      <label>Текст</label><textarea name="text" maxlength="4000" rows="6" placeholder="Можно не подбирать слова — просто напиши как есть" required></textarea>
+      <p class="muted" style="margin:8px 0 0">${esc(p)} получит уведомление без текста и откроет записку, когда будет спокойная минута.</p>`,
+      async (f) => { await api("/api/notes", { method: "POST", json: { kind: f.kind.value, text: f.text.value } }); state.notesSide = "sent"; });
+  });
+}
+
+const noteDate = (iso) => fmtDate(iso.slice(0, 10));
+
+function inboxNote(n, p) {
+  if (!n.read) return `
+    <div class="card note sealed">
+      <div class="row between"><span class="tag">${esc(n.kind_name)}</span><span class="muted">${noteDate(n.created_at)}</span></div>
+      <div class="seal">Тебе записка</div>
+      <button style="width:100%" data-open="${n.id}">Открыть</button>
+    </div>`;
+  return `
+    <div class="card note">
+      <div class="row between"><span class="tag">${esc(n.kind_name)}</span><span class="muted">${noteDate(n.created_at)}</span></div>
+      <div class="note-text">${esc(n.text)}</div>
+      ${n.reaction ? `<div class="muted">Ты ответил(а): ${REACTIONS[n.reaction]}</div>`
+        : `<div class="reacts">${Object.entries(REACTIONS).map(([k, v]) => `<button class="small ghost" data-react="${n.id}:${k}">${v}</button>`).join("")}</div>`}
+    </div>`;
+}
+
+function sentNote(n, p) {
+  const status = n.reaction ? `${esc(p)} ${REACTED[n.reaction]}` : n.read ? "Прочитано" : "Ещё не прочитано";
+  return `
+    <div class="card note">
+      <div class="row between"><span class="tag">${esc(n.kind_name)}</span><span class="row"><span class="muted">${noteDate(n.created_at)}</span><button class="icon" data-del-note="${n.id}">✕</button></span></div>
+      <div class="note-text">${esc(n.text)}</div>
+      <div class="note-status ${n.reaction ? "warm" : ""}">${status}</div>
+    </div>`;
+}
+
+function updateBadges() {
+  const n = state.me?.unread_notes || 0;
+  const more = document.querySelector('#tabs button[data-tab="more"]');
+  more?.classList.toggle("badge", n > 0);
 }
 
 boot();

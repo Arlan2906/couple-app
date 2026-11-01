@@ -38,6 +38,7 @@ REWARDS = {
     "goal": (0, 6, 5),
     "bucket_add": (0, 5, 5),
     "bucket_done": (10, 30, 40),
+    "note": (0, 8, 10),
 }
 
 
@@ -109,6 +110,8 @@ async def _gain(s: AsyncSession, pet: Pet, food: float, joy: float, xp: int) -> 
     if news:
         for m in await members(s, pet.couple_id):
             await notify(m.id, news, button="Посмотреть", tab="pet")
+    from .house import check_unlocks  # локально, чтобы не было циклического импорта
+    await check_unlocks(s, pet)
 
 
 async def award(s: AsyncSession, couple_id: int | None, reason: str) -> None:
