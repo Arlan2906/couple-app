@@ -73,13 +73,13 @@ def status_for(pet: Pet) -> tuple[str, str]:
     if stage_for(pet.xp) == "egg":
         return "egg", "Тёплое яйцо. Кажется, внутри кто-то шевелится…"
     if pet.food < 10 and pet.joy < 10:
-        return "sad", "Совсем загрустил и проголодался 🥺"
+        return "sad", "Совсем загрустил и проголодался"
     if pet.food < 25:
         return "hungry", "Урчит животик — покормите!"
     if pet.joy < 25:
         return "bored", "Скучает по вам. Погладьте!"
     if pet.food > 70 and pet.joy > 70:
-        return "happy", "Счастлив и сыт 💞"
+        return "happy", "Счастлив и сыт"
     return "ok", "Всё хорошо"
 
 
@@ -101,14 +101,14 @@ async def _gain(s: AsyncSession, pet: Pet, food: float, joy: float, xp: int) -> 
     await s.commit()
     news = None
     if was_egg and stage_for(pet.xp) != "egg":
-        news = f"🐣 Ура! {pet.name} вылупился! {KINDS.get(pet.kind, '')}\nТеперь его нужно кормить и гладить."
+        news = f"Ура! {pet.name} вылупился!\nТеперь его нужно кормить и гладить."
     elif not was_egg and level_for(pet.xp) > old_level:
-        news = f"⭐ {pet.name} вырос до {level_for(pet.xp)} уровня!"
+        news = f"{pet.name} вырос до {level_for(pet.xp)} уровня!"
         if stage_for(pet.xp) != stage_for(pet.xp - xp):
-            news += " Смотрите, как он изменился 👀"
+            news += " Смотрите, как он изменился"
     if news:
         for m in await members(s, pet.couple_id):
-            await notify(m.id, news, button="🐾 Посмотреть", tab="pet")
+            await notify(m.id, news, button="Посмотреть", tab="pet")
 
 
 async def award(s: AsyncSession, couple_id: int | None, reason: str) -> None:
@@ -128,9 +128,9 @@ async def hungry_line(s: AsyncSession, couple_id: int) -> str:
     apply_decay(pet, utcnow())
     await s.commit()
     if pet.food < 30:
-        return f"\n\n🥺 {pet.name} проголодался — загляните покормить"
+        return f"\n\n{pet.name} проголодался — загляните покормить"
     if pet.joy < 30:
-        return f"\n\n🥺 {pet.name} скучает — погладьте его"
+        return f"\n\n{pet.name} скучает — погладьте его"
     return ""
 
 
@@ -189,9 +189,9 @@ async def pet_create(body: PetIn, user: User = Depends(paired_user), s: AsyncSes
     await s.commit()
     for m in await members(s, user.couple_id):
         if m.id != user.id:
-            await notify(m.id, f"🥚 У вас появилось яйцо! Внутри — {pet.name}.\n"
+            await notify(m.id, f"У вас появилось яйцо! Внутри — {pet.name}.\n"
                                f"Отмечайте настроение, добавляйте моменты, гладьте — и оно вылупится.",
-                         button="🐾 Посмотреть", tab="pet")
+                         button="Посмотреть", tab="pet")
     return await load(s, user)
 
 
@@ -218,12 +218,12 @@ async def pet_act(action: str, user: User = Depends(paired_user), s: AsyncSessio
         raise HTTPException(404, "Сначала заведите питомца")
     cd, food, joy, xp = ACTIONS[action]
     if action == "feed" and stage_for(pet.xp) == "egg":
-        raise HTTPException(400, "Яйцо не ест — его можно только греть 🤲")
+        raise HTTPException(400, "Яйцо не ест — его можно только греть")
     last = (await s.execute(select(PetAction.at).where(
         PetAction.pet_id == pet.id, PetAction.user_id == user.id, PetAction.action == action)
         .order_by(PetAction.at.desc()).limit(1))).scalar_one_or_none()
     if last and (utcnow() - last).total_seconds() < cd:
-        raise HTTPException(429, "Чуть позже — он ещё не соскучился 🙂" if action == "pet" else "Он ещё сытый 🙂")
+        raise HTTPException(429, "Чуть позже — он ещё не соскучился" if action == "pet" else "Он ещё сытый")
     s.add(PetAction(pet_id=pet.id, user_id=user.id, action=action, at=utcnow()))
     await _gain(s, pet, food, joy, xp)
     return await load(s, user)

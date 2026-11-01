@@ -20,8 +20,8 @@ from .pet import hungry_line
 router = APIRouter()
 
 TEXTS = {
-    "morning": "☀️ Доброе утро, {name}! Как настроение?",
-    "evening": "🌙 {name}, как прошёл день? Отметь настроение",
+    "morning": "Доброе утро, {name}! Как настроение?",
+    "evening": "{name}, как прошёл день? Отметь настроение",
 }
 
 
@@ -57,11 +57,11 @@ async def mood_reminder(slot: str, key: str = "", force: bool = False):
             partner = next(m for m in members if m.id != u.id)
             text = TEXTS[slot].format(name=u.name)
             if slot == "evening" and u.id in mood_by_user:
-                text = f"🌙 {u.name}, как прошёл день? Сегодня у тебя было {mood_by_user[u.id].emoji} — поменялось?"
+                text = f"{u.name}, как прошёл день? Сегодня у тебя было {mood_by_user[u.id].emoji} — поменялось?"
             pm = mood_by_user.get(partner.id)
             if pm:
                 note = f" — «{pm.note}»" if pm.note else ""
                 text += f"\n\n{partner.name} сегодня: {pm.emoji}{note}"
-            await notify(u.id, text + pet_line, button="😊 Отметить", tab="mood")
+            await notify(u.id, text + pet_line, button="Отметить", tab="mood")
             sent += 1
     return {"ok": True, "sent": sent}

@@ -20,7 +20,7 @@ dp = Dispatcher()
 UPLOADS = config.BASE_DIR / "data" / "uploads"
 
 
-def open_app_kb(text: str = "💞 Открыть", tab: str | None = None) -> InlineKeyboardMarkup | None:
+def open_app_kb(text: str = "Открыть", tab: str | None = None) -> InlineKeyboardMarkup | None:
     if not config.WEBAPP_URL:
         return None
     url = f"{config.WEBAPP_URL}/?tab={tab}" if tab else config.WEBAPP_URL
@@ -36,7 +36,7 @@ async def on_start(message: Message, command: CommandObject):
     async with Session() as s:
         user = await s.get(User, uid) or User(id=uid, name=name)
         s.add(user)
-        text = f"Привет, {name}! Это ваше общее место — {config.APP_TITLE} 💞"
+        text = f"Привет, {name}! Это ваше общее место — {config.APP_TITLE}"
 
         arg = (command.args or "").strip()
         if arg.startswith("join_") and not user.couple_id:
@@ -47,29 +47,29 @@ async def on_start(message: Message, command: CommandObject):
                 members = (await s.execute(select(User).where(User.couple_id == couple.id))).scalars().all()
             if couple and len(members) < 2:
                 user.couple_id = couple.id
-                text += "\n\nВы связаны в пару ✨"
+                text += "\n\nВы связаны в пару"
                 for m in members:
-                    await notify(m.id, f"💞 {name} присоединился(лась) к вашей паре!")
+                    await notify(m.id, f"{name} присоединился(лась) к вашей паре!")
             else:
-                text += "\n\nКод приглашения не подошёл 😕"
+                text += "\n\nКод приглашения не подошёл"
         await s.commit()
     await message.answer(text, reply_markup=open_app_kb())
 
 
 @dp.message(F.text)
 async def fallback(message: Message):
-    await message.answer("Всё живёт в приложении 👇", reply_markup=open_app_kb())
+    await message.answer("Всё живёт в приложении", reply_markup=open_app_kb())
 
 
 async def setup_bot() -> None:
     if not bot or not config.WEBAPP_URL:
         return
     await bot.set_chat_menu_button(
-        menu_button=MenuButtonWebApp(text="💞 Мы", web_app=WebAppInfo(url=config.WEBAPP_URL))
+        menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=config.WEBAPP_URL))
     )
 
 
-async def notify(user_id: int, text: str, button: str = "💞 Открыть", tab: str | None = None) -> None:
+async def notify(user_id: int, text: str, button: str = "Открыть", tab: str | None = None) -> None:
     if not bot:
         log.info("notify %s: %s", user_id, text)
         return

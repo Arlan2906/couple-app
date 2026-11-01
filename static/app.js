@@ -75,9 +75,9 @@ function fab(onClick) {
 /* ---------- старт ---------- */
 async function boot() {
   try { state.me = await api("/api/me"); }
-  catch { view.innerHTML = `<div class="empty"><span class="e">🔒</span>Открой приложение через бота в Telegram</div>`; return; }
+  catch { view.innerHTML = `<div class="empty">Открой приложение через бота в Telegram</div>`; return; }
   document.title = state.me.title;
-  $("#title").textContent = state.me.title + " 💞";
+  $("#title").textContent = state.me.title;
   if (!state.me.couple || !state.me.partner) return renderOnboarding();
   $("#tabs").hidden = false;
   highlightTab();
@@ -88,16 +88,20 @@ async function boot() {
 function updateSubtitle() {
   const c = state.me.couple;
   $("#subtitle").textContent = c?.days_together
-    ? `Вместе ${c.days_together} ${plural(c.days_together, "день", "дня", "дней")} 🤍`
+    ? `Вместе ${c.days_together} ${plural(c.days_together, "день", "дня", "дней")}`
     : `${state.me.name} и ${state.me.partner?.name ?? "…"}`;
 }
 
 /* ---------- навигация: 4 главные вкладки + «Ещё» ---------- */
 // Чтобы добавить новый раздел в меню «Ещё», допиши его сюда и добавь render-функцию в RENDERERS.
 const MORE_SECTIONS = [
-  { tab: "goals", icon: "💰", title: "Копилка", desc: "Копим вместе на цели" },
-  { tab: "bucket", icon: "✅", title: "Мечты", desc: "Что хотим сделать вместе" },
+  { tab: "goals", icon: "wallet", title: "Копилка", desc: "Копим вместе на цели" },
+  { tab: "bucket", icon: "check", title: "Мечты", desc: "Что хотим сделать вместе" },
 ];
+const MORE_ICONS = {
+  wallet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>`,
+};
 const isMoreSection = (tab) => MORE_SECTIONS.some((x) => x.tab === tab);
 
 function highlightTab() {
@@ -123,7 +127,7 @@ function renderMore() {
   view.innerHTML = `
     <h2>Ещё</h2>
     <div class="more-grid">
-      ${MORE_SECTIONS.map((x) => `<button class="more-item" data-go="${x.tab}"><span class="mi">${x.icon}</span><b>${x.title}</b><small>${x.desc}</small></button>`).join("")}
+      ${MORE_SECTIONS.map((x) => `<button class="more-item" data-go="${x.tab}"><span class="mi">${MORE_ICONS[x.icon]}</span><b>${x.title}</b><small>${x.desc}</small></button>`).join("")}
     </div>`;
   view.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { haptic(); goTo(b.dataset.go); }));
 }
@@ -152,17 +156,16 @@ function renderOnboarding() {
     const link = c.invite_link;
     view.innerHTML = `
       <div class="onboard">
-        <div class="heart">💌</div>
         <div class="card center">
           <p>Отправь приглашение второй половинке. Как только она откроет ссылку — вы будете вместе здесь.</p>
           <div class="code">${esc(c.code)}</div>
           <p class="muted">или пусть введёт этот код у себя</p>
-          ${link ? `<button id="share" style="width:100%">Отправить приглашение 💞</button>` : ""}
+          ${link ? `<button id="share" style="width:100%">Отправить приглашение</button>` : ""}
           <button id="refresh" class="ghost" style="width:100%;margin-top:8px">Она уже присоединилась</button>
         </div>
       </div>`;
     $("#share") && ($("#share").onclick = () => {
-      const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Присоединяйся к нашему месту 💞")}`;
+      const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Присоединяйся к нашему месту")}`;
       tg ? tg.openTelegramLink(url) : window.open(url);
     });
     $("#refresh").onclick = () => location.reload();
@@ -170,7 +173,6 @@ function renderOnboarding() {
   }
   view.innerHTML = `
     <div class="onboard">
-      <div class="heart">💞</div>
       <div class="card">
         <h3 style="margin:0 0 6px">Привет, ${esc(state.me.name)}!</h3>
         <p class="muted" style="margin:0 0 14px">Это ваше общее пространство. Один создаёт пару, второй присоединяется.</p>
@@ -236,7 +238,7 @@ function startTicker() {
   startTicker._t = setInterval(tick, 1000);
 }
 
-/* ---------- 🏠 Мы ---------- */
+/* ---------- Мы ---------- */
 async function renderUs() {
   const items = await api("/api/moments");
   const c = state.me.couple;
@@ -244,12 +246,12 @@ async function renderUs() {
     ? `<div class="big">${c.days_together}</div><div class="lbl">${plural(c.days_together, "день", "дня", "дней")} вместе · с ${fmtDate(c.started_on)}${c.started_time ? `, ${c.started_time}` : ""}</div>
        <div class="ticker" id="ticker">${TICK_UNITS.map((u) => `<div><b data-u="${u[0]}">0</b><span data-l="${u[0]}"></span></div>`).join("")}</div>
        <button class="small" id="setDate">Изменить дату</button>`
-    : `<div class="lbl" style="font-size:17px">С какого дня вы вместе?</div><button class="small" id="setDate">Указать дату 💞</button>`;
+    : `<div class="lbl" style="font-size:17px">С какого дня вы вместе?</div><button class="small" id="setDate">Указать дату</button>`;
   view.innerHTML = `
     <div class="hero">${hero}</div>
     <h2>Наши моменты <small>${items.length || ""}</small></h2>
     ${items.length ? `<div class="timeline">${items.map(momentCard).join("")}</div>`
-      : `<div class="empty"><span class="e">📸</span>Добавьте первый момент — первое свидание, смешной случай, любое «помнишь?»</div>`}`;
+      : `<div class="empty">Добавьте первый момент — первое свидание, смешной случай, любое «помнишь?»</div>`}`;
   startTicker();
   $("#setDate").onclick = () => openSheet(
     `<h3>Начало истории</h3>
@@ -266,7 +268,7 @@ async function renderUs() {
   }));
   fab(() => openSheet(`
     <h3>Новый момент</h3>
-    <label>Что было</label><input name="title" maxlength="200" placeholder="Первое свидание ☕" required>
+    <label>Что было</label><input name="title" maxlength="200" placeholder="Первое свидание" required>
     <label>Когда</label><input type="date" name="happened_on" value="${todayIso()}" max="${todayIso()}" required>
     <label>Пару слов</label><textarea name="text" maxlength="3000" placeholder="Что запомнилось?"></textarea>
     <label>Фото</label><input type="file" name="photo" accept="image/*">`,
@@ -283,16 +285,16 @@ const momentCard = (m) => `
     <div class="muted" style="margin-top:6px">добавил(а) ${esc(m.author)}</div>
   </div>`;
 
-/* ---------- 🎁 Вишлисты ---------- */
+/* ---------- Вишлисты ---------- */
 async function renderWishes() {
   const data = await api("/api/wishes");
   const p = state.me.partner.name;
   const list = state.wishSide === "mine" ? data.mine : data.partner;
   view.innerHTML = `
     <div class="seg"><button data-side="mine" class="${state.wishSide === "mine" ? "on" : ""}">Мои</button><button data-side="partner" class="${state.wishSide === "partner" ? "on" : ""}">${esc(p)}</button></div>
-    <p class="muted center" style="margin:10px 0 4px">${state.wishSide === "mine" ? "Кто что забронировал — не узнаешь, это сюрприз 🤫" : `Отметь «беру», и ${esc(p)} не увидит`}</p>
+    <p class="muted center" style="margin:10px 0 4px">${state.wishSide === "mine" ? "Кто что забронировал — не узнаешь, это сюрприз" : `Отметь «беру», и ${esc(p)} не увидит`}</p>
     ${list.length ? list.map((w) => wishCard(w, state.wishSide === "mine")).join("")
-      : `<div class="empty"><span class="e">🎁</span>${state.wishSide === "mine" ? "Добавь, что бы тебе хотелось" : "Пока пусто — намекни, что пора заполнить 😉"}</div>`}`;
+      : `<div class="empty">${state.wishSide === "mine" ? "Добавь, что бы тебе хотелось" : "Пока пусто — намекни, что пора заполнить"}</div>`}`;
   view.querySelectorAll("[data-side]").forEach((b) => (b.onclick = () => { state.wishSide = b.dataset.side; haptic(); render(); }));
   view.querySelectorAll("[data-reserve]").forEach((b) => (b.onclick = async () => { await api(`/api/wishes/${b.dataset.reserve}/reserve`, { method: "POST" }); success(); render(); }));
   view.querySelectorAll("[data-received]").forEach((b) => (b.onclick = async () => { await api(`/api/wishes/${b.dataset.received}/received`, { method: "POST" }); render(); }));
@@ -328,7 +330,7 @@ function wishCard(w, mine) {
   return `<div class="card wish ${w.received ? "done" : ""}"><div class="row"><div class="grow"><div class="t">${esc(w.title)}</div>${meta ? `<div class="muted">${meta}</div>` : ""}</div>${action}</div></div>`;
 }
 
-/* ---------- 😊 Настроение ---------- */
+/* ---------- Настроение ---------- */
 const MOODS = ["🥰", "😊", "🙂", "😐", "😔", "😢", "😤", "😴", "🤒", "🥳", "🤯", "🫠"];
 
 async function renderMood() {
@@ -358,18 +360,18 @@ async function renderMood() {
     view.querySelectorAll("[data-e]").forEach((x) => x.classList.toggle("on", x === b));
   }));
   $("#save").onclick = async () => {
-    if (!picked) return toast("Выбери смайлик 🙂");
+    if (!picked) return toast("Выбери смайлик");
     await api("/api/moods/today", { method: "PUT", json: { emoji: picked, note: $("#note").value } });
-    success(); toast(`${p} увидит 💌`); render();
+    success(); toast(`${p} увидит`); render();
   };
 }
 const cell = (m) => `<div class="c">${m ? `${m.emoji}${m.note ? `<small>${esc(m.note)}</small>` : ""}` : `<span class="muted">·</span>`}</div>`;
 
-/* ---------- 💰 Копилка ---------- */
+/* ---------- Копилка ---------- */
 async function renderGoals() {
   const goals = await api("/api/goals");
   view.innerHTML = goals.length ? `<h2>Копим вместе</h2>${goals.map(goalCard).join("")}`
-    : `<div class="empty"><span class="e">🐷</span>Заведите цель — поездка, подарок, что угодно. Отмечайте, кто сколько отложил.</div>`;
+    : `<div class="empty">Заведите цель — поездка, подарок, что угодно. Отмечайте, кто сколько отложил.</div>`;
   view.querySelectorAll("[data-dep]").forEach((b) => (b.onclick = () => {
     const sign = b.dataset.sign === "-" ? -1 : 1;
     openSheet(`
@@ -384,33 +386,32 @@ async function renderGoals() {
   fab(() => openSheet(`
     <h3>Новая цель</h3>
     <label>На что копим</label><input name="title" maxlength="200" placeholder="Поездка вдвоём" required>
-    <label>Сколько нужно, ₸</label><input name="target" type="number" min="1" inputmode="numeric" required>
-    <label>Эмодзи</label><input name="emoji" maxlength="4" value="✈️">`,
-    async (f) => { await api("/api/goals", { method: "POST", json: { title: f.title.value, target: Number(f.target.value), emoji: f.emoji.value || "💰" } }); }
+    <label>Сколько нужно, ₸</label><input name="target" type="number" min="1" inputmode="numeric" required>`,
+    async (f) => { await api("/api/goals", { method: "POST", json: { title: f.title.value, target: Number(f.target.value), emoji: "" } }); }
   ));
 }
 
 const goalCard = (g) => `
   <div class="card goal">
-    <div class="row between"><div class="t">${esc(g.emoji)} ${esc(g.title)}</div><button class="icon" data-del-goal="${g.id}">⋯</button></div>
+    <div class="row between"><div class="t">${esc(g.title)}</div><button class="icon" data-del-goal="${g.id}">⋯</button></div>
     <div class="bar"><i style="width:${g.percent}%"></i></div>
     <div class="row between"><span class="sum">${money(g.total)} <span class="muted">из ${money(g.target)}</span></span><span class="progress-line">${g.percent}%</span></div>
     <div class="who muted">${Object.entries(g.by_user).map(([n, s]) => `${esc(n)}: ${money(s)}`).join(" · ") || "пока никто не внёс"}</div>
     <div class="row" style="margin-top:12px"><button class="small" data-dep="${g.id}">+ Пополнить</button><button class="small ghost" data-dep="${g.id}" data-sign="-">− Снять</button></div>
   </div>`;
 
-/* ---------- ✅ Мечты (бакет-лист) ---------- */
+/* ---------- Мечты (бакет-лист) ---------- */
 async function renderBucket() {
   const items = await api("/api/bucket");
   const done = items.filter((i) => i.done).length;
   view.innerHTML = `
     <h2>Наши мечты <small>${items.length ? `${done} из ${items.length}` : ""}</small></h2>
-    ${items.length ? items.map(bucketCard).join("") : `<div class="empty"><span class="e">🌠</span>Что вы хотите сделать вместе? Прыгнуть с парашютом, встретить рассвет в горах…</div>`}`;
+    ${items.length ? items.map(bucketCard).join("") : `<div class="empty">Что вы хотите сделать вместе? Прыгнуть с парашютом, встретить рассвет в горах…</div>`}`;
   view.querySelectorAll("[data-toggle]").forEach((b) => (b.onclick = async () => {
     const item = items.find((i) => i.id === Number(b.dataset.toggle));
     if (item.done) { await api(`/api/bucket/${item.id}/toggle`, { method: "POST", form: new FormData() }); return render(); }
     openSheet(`
-      <h3>Сбылось! 🎉</h3><p class="muted">«${esc(item.title)}»</p>
+      <h3>Сбылось!</h3><p class="muted">«${esc(item.title)}»</p>
       <label>Фото на память (по желанию)</label><input type="file" name="photo" accept="image/*">`,
       async (f) => { await api(`/api/bucket/${item.id}/toggle`, { method: "POST", form: new FormData(f) }); });
   }));
@@ -435,10 +436,10 @@ const bucketCard = (b) => `
     ${b.photo ? `<img loading="lazy" src="${photoUrl(b.photo)}" alt="">` : ""}
   </div>`;
 
-/* ---------- 🐣 Питомец ---------- */
+/* ---------- Питомец ---------- */
 const KIND_NAMES = { cat: "Котик", dog: "Пёсик", fox: "Лисёнок", panda: "Панда", bunny: "Зайка", hamster: "Хомяк", penguin: "Пингвин", dragon: "Дракоша" };
 const STAGE_NAMES = { egg: "яйцо", baby: "малыш", kid: "подросток", adult: "взрослый", legend: "легенда" };
-const ACT_NAMES = { feed: "покормил(а) 🍎", pet: "погладил(а) 🤚" };
+const ACT_NAMES = { feed: "покормил(а)", pet: "погладил(а)" };
 const ago = (m) => (m < 1 ? "только что" : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.floor(m / 60)} ч назад` : `${Math.floor(m / 1440)} дн назад`);
 const cdText = (sec) => (sec >= 3600 ? `через ${Math.floor(sec / 3600)} ч ${Math.ceil((sec % 3600) / 60)} мин` : `через ${Math.max(1, Math.ceil(sec / 60))} мин`);
 
@@ -459,7 +460,7 @@ function renderPetPicker(kinds) {
       <div class="kinds">${Object.entries(kinds).map(([k, e]) => `<button data-kind="${k}" class="${k === picked ? "on" : ""}"><span>${e}</span>${KIND_NAMES[k] || k}</button>`).join("")}</div>
       <label>Как назовём?</label>
       <input id="petName" maxlength="40" placeholder="Пончик">
-      <button id="petCreate" style="width:100%;margin-top:14px">Получить яйцо 🥚</button>
+      <button id="petCreate" style="width:100%;margin-top:14px">Получить яйцо</button>
     </div>`;
   view.querySelectorAll("[data-kind]").forEach((b) => (b.onclick = () => {
     picked = b.dataset.kind; haptic();
@@ -467,7 +468,7 @@ function renderPetPicker(kinds) {
   }));
   $("#petCreate").onclick = async () => {
     const name = $("#petName").value.trim();
-    if (!name) return toast("Придумайте имя 🙂");
+    if (!name) return toast("Придумайте имя");
     const d = await api("/api/pet", { method: "POST", json: { kind: picked, name } });
     success(); drawPet(d.pet);
   };
@@ -486,28 +487,25 @@ function drawPet(p) {
       <div class="pet-stage" id="petTap">
         ${p.stage === "legend" ? `<div class="crown">👑</div>` : ""}
         <div class="pet-emoji">${egg ? "🥚" : p.emoji}</div>
-        ${p.status === "hungry" || p.status === "sad" ? `<div class="bubble">🍖?</div>` : ""}
-        ${p.status === "bored" ? `<div class="bubble">💭💞</div>` : ""}
-        ${p.status === "happy" ? `<div class="bubble sm">✨</div>` : ""}
         <div class="shadow"></div>
       </div>
       <div class="pet-status">${esc(p.status_text)}</div>
     </div>
     <div class="card">
-      ${egg ? "" : `<div class="stat"><span>🍖 Сытость</span><div class="bar"><i style="width:${p.food}%" class="${p.food < 25 ? "low" : ""}"></i></div><b>${p.food}</b></div>
-      <div class="stat"><span>💗 Радость</span><div class="bar"><i style="width:${p.joy}%" class="${p.joy < 25 ? "low" : ""}"></i></div><b>${p.joy}</b></div>`}
-      <div class="stat"><span>${egg ? "🐣 До вылупления" : "⭐ Опыт"}</span><div class="bar"><i style="width:${lvlPct}%" class="xp"></i></div><b>${lvlPct}%</b></div>
+      ${egg ? "" : `<div class="stat"><span>Сытость</span><div class="bar"><i style="width:${p.food}%" class="${p.food < 25 ? "low" : ""}"></i></div><b>${p.food}</b></div>
+      <div class="stat"><span>Радость</span><div class="bar"><i style="width:${p.joy}%" class="${p.joy < 25 ? "low" : ""}"></i></div><b>${p.joy}</b></div>`}
+      <div class="stat"><span>${egg ? "До вылупления" : "Опыт"}</span><div class="bar"><i style="width:${lvlPct}%" class="xp"></i></div><b>${lvlPct}%</b></div>
     </div>
     <div class="pet-actions">
-      ${egg ? btn("pet", "🤲 Согреть") : btn("feed", "🍎 Покормить") + btn("pet", "🤚 Погладить")}
+      ${egg ? btn("pet", "Согреть") : btn("feed", "Покормить") + btn("pet", "Погладить")}
     </div>
     <h2>Как ${esc(p.name)} растёт</h2>
     <div class="card muted grow-list">
-      <div>😊 Отметить настроение — <b>+10</b> (оба за день — ещё <b>+10</b>)</div>
-      <div>📸 Новый момент — <b>+15</b></div>
-      <div>✅ Сбывшаяся мечта — <b>+40</b></div>
-      <div>💰 Пополнить копилку, 🎁 желание, ✨ новая мечта — <b>+5</b></div>
-      <div>🍎 Покормить, 🤚 погладить — <b>+3</b> (у каждого своя перезарядка)</div>
+      <div>Отметить настроение — <b>+10</b> (оба за день — ещё <b>+10</b>)</div>
+      <div>Новый момент — <b>+15</b></div>
+      <div>Сбывшаяся мечта — <b>+40</b></div>
+      <div>Пополнить копилку, новое желание, новая мечта — <b>+5</b></div>
+      <div>Покормить, погладить — <b>+3</b> (у каждого своя перезарядка)</div>
     </div>
     ${p.log.length ? `<h2>Недавно</h2><div class="card">${p.log.map((l) => `<div class="row between log"><span>${esc(l.who)} ${ACT_NAMES[l.action] || l.action}</span><span class="muted">${ago(l.ago_min)}</span></div>`).join("")}</div>` : ""}
   `;
@@ -515,12 +513,12 @@ function drawPet(p) {
     b.disabled = true;
     try {
       const d = await api(`/api/pet/${b.dataset.act}`, { method: "POST" });
-      success(); hearts(b.dataset.act === "feed" ? "🍎" : "💗");
+      success(); hearts(b.dataset.act === "feed" ? "+22 сытость" : "+12 радость", 1);
       setTimeout(() => drawPet(d.pet), 700);
     } catch { b.disabled = false; }
   }));
   $("#petTap").onclick = () => {
-    haptic("soft"); const e = $(".pet-emoji"); e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing"); hearts("💕", 2);
+    haptic("soft"); const e = $(".pet-emoji"); e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing");
   };
   $("#rename").onclick = () => openSheet(
     `<h3>Новое имя</h3><label>Имя</label><input name="n" maxlength="40" value="${esc(p.name)}" required>`,
@@ -534,7 +532,7 @@ function hearts(ch, n = 5) {
   for (let i = 0; i < n; i++) {
     const h = document.createElement("span");
     h.className = "heart"; h.textContent = ch;
-    h.style.left = `${35 + Math.random() * 30}%`; h.style.animationDelay = `${i * 90}ms`;
+    h.style.left = "50%"; h.style.animationDelay = `${i * 90}ms`;
     stage.appendChild(h); setTimeout(() => h.remove(), 1400);
   }
 }

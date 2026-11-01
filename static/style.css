@@ -236,3 +236,11 @@ textarea { resize: vertical; min-height: 70px; }
 .more-item b { font-size: 16px; }
 .more-item small { color: var(--hint); font-weight: 600; font-size: 12px; line-height: 1.3; }
 .back-link { background: transparent; color: var(--accent); padding: 4px 4px 0; font-size: 14px; }
+
+/* линейные иконки вместо смайликов */
+.tabs button svg { width: 23px; height: 23px; transition: .2s; }
+.tabs button.active svg { transform: translateY(-1px); }
+.more-item .mi { color: var(--accent); }
+.more-item .mi svg { width: 30px; height: 30px; }
+.heart { font-size: 15px; font-weight: 800; color: #fff; background: rgba(0,0,0,.18); padding: 4px 10px; border-radius: 10px; transform: translateX(-50%); white-space: nowrap; }
+@keyframes floatUp { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, -90px); opacity: 0; } }

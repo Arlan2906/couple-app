@@ -109,7 +109,7 @@ async def pair_join(body: JoinIn, user: User = Depends(current_user), s: AsyncSe
         raise HTTPException(409, "В этой паре уже двое")
     user.couple_id = couple.id
     await s.commit()
-    await ping_partner(s, user, f"💞 {user.name} присоединился(лась) к вашей паре!")
+    await ping_partner(s, user, f"{user.name} присоединился(лась) к вашей паре!")
     return {"ok": True}
 
 
@@ -174,7 +174,7 @@ async def moments_create(
     s.add(m)
     await s.commit()
     await award(s, user.couple_id, "moment")
-    await ping_partner(s, user, f"📸 {user.name} добавил(а) момент: «{m.title}»")
+    await ping_partner(s, user, f"{user.name} добавил(а) момент: «{m.title}»")
     return moment_out(m, {user.id: user.name})
 
 
@@ -214,7 +214,7 @@ async def wishes_create(body: WishIn, user: User = Depends(paired_user), s: Asyn
     s.add(w)
     await s.commit()
     await award(s, user.couple_id, "wish")
-    await ping_partner(s, user, f"🎁 В вишлисте {user.name} новое: «{w.title}»")
+    await ping_partner(s, user, f"В вишлисте {user.name} новое: «{w.title}»")
     return {"id": w.id}
 
 
@@ -229,7 +229,7 @@ async def get_wish(s: AsyncSession, wid: int, user: User) -> Wish:
 async def wishes_reserve(wid: int, user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
     w = await get_wish(s, wid, user)
     if w.owner_id == user.id:
-        raise HTTPException(400, "Себе бронировать нельзя 🙂")
+        raise HTTPException(400, "Себе бронировать нельзя")
     if w.reserved_by and w.reserved_by != user.id:
         raise HTTPException(409, "Уже забронировано")
     w.reserved_by = None if w.reserved_by == user.id else user.id
@@ -300,7 +300,7 @@ async def moods_set(body: MoodIn, user: User = Depends(paired_user), s: AsyncSes
         partner = await partner_of(s, user)
         if partner and (await s.execute(select(Mood.id).where(Mood.user_id == partner.id, Mood.day == d))).first():
             await award(s, user.couple_id, "mood_both")
-    await ping_partner(s, user, f"{m.emoji} Настроение {user.name} сегодня{note}")
+    await ping_partner(s, user, f"Настроение {user.name} сегодня: {m.emoji}{note}")
     return {"ok": True}
 
 
@@ -309,7 +309,7 @@ async def moods_set(body: MoodIn, user: User = Depends(paired_user), s: AsyncSes
 class GoalIn(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     target: int = Field(gt=0)
-    emoji: str = Field("💰", max_length=16)
+    emoji: str = Field("", max_length=16)
 
 
 class DepositIn(BaseModel):
@@ -340,11 +340,11 @@ async def goals_list(user: User = Depends(paired_user), s: AsyncSession = Depend
 
 @router.post("/goals")
 async def goals_create(body: GoalIn, user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
-    g = Goal(couple_id=user.couple_id, title=body.title.strip(), target=body.target, emoji=body.emoji or "💰")
+    g = Goal(couple_id=user.couple_id, title=body.title.strip(), target=body.target, emoji=body.emoji or "")
     s.add(g)
     await s.commit()
     await award(s, user.couple_id, "goal")
-    await ping_partner(s, user, f"{g.emoji} {user.name} создал(а) цель: «{g.title}» — {g.target:,} ₸".replace(",", " "))
+    await ping_partner(s, user, f"{user.name} создал(а) цель: «{g.title}» — {g.target:,} ₸".replace(",", " "))
     return {"id": g.id}
 
 
@@ -366,10 +366,10 @@ async def goals_deposit(gid: int, body: DepositIn, user: User = Depends(paired_u
     after = before + body.amount
     sign = "+" if body.amount > 0 else "−"
     amount = f"{abs(body.amount):,}".replace(",", " ")
-    text = f"{g.emoji} {user.name}: {sign}{amount} ₸ в «{g.title}»"
+    text = f"{user.name}: {sign}{amount} ₸ в «{g.title}»"
     for mark in (100, 75, 50, 25):
         if before * 100 < g.target * mark <= after * 100:
-            text += f"\n🎉 Цель на {mark}%!" if mark < 100 else "\n🏆 Цель достигнута!"
+            text += f"\nЦель на {mark}%!" if mark < 100 else "\nЦель достигнута!"
             break
     if body.amount > 0:
         await award(s, user.couple_id, "deposit")
@@ -410,7 +410,7 @@ async def bucket_create(body: BucketIn, user: User = Depends(paired_user), s: As
     s.add(b)
     await s.commit()
     await award(s, user.couple_id, "bucket_add")
-    await ping_partner(s, user, f"✨ {user.name} добавил(а) мечту: «{b.title}»")
+    await ping_partner(s, user, f"{user.name} добавил(а) мечту: «{b.title}»")
     return {"id": b.id}
 
 
@@ -433,7 +433,7 @@ async def bucket_toggle(
     await s.commit()
     if b.done:
         await award(s, user.couple_id, "bucket_done")
-        await ping_partner(s, user, f"✅ Сбылось: «{b.title}»!")
+        await ping_partner(s, user, f"Сбылось: «{b.title}»!")
     return {"done": b.done}
 
 
