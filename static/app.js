@@ -5,7 +5,7 @@ tg?.expand();
 const $ = (s, el = document) => el.querySelector(s);
 const view = $("#view");
 const START_TAB = new URLSearchParams(location.search).get("tab");
-const state = { me: null, tab: ["us", "pet", "wishes", "mood", "goals", "bucket"].includes(START_TAB) ? START_TAB : "us", wishSide: "mine" };
+const state = { me: null, tab: ["us", "pet", "wishes", "mood", "more", "goals", "bucket"].includes(START_TAB) ? START_TAB : "us", wishSide: "mine" };
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const money = (n) => `${Number(n || 0).toLocaleString("ru-RU")} ₸`;
@@ -80,7 +80,7 @@ async function boot() {
   $("#title").textContent = state.me.title + " 💞";
   if (!state.me.couple || !state.me.partner) return renderOnboarding();
   $("#tabs").hidden = false;
-  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("active", x.dataset.tab === state.tab));
+  highlightTab();
   updateSubtitle();
   render();
 }
@@ -92,19 +92,57 @@ function updateSubtitle() {
     : `${state.me.name} и ${state.me.partner?.name ?? "…"}`;
 }
 
+/* ---------- навигация: 4 главные вкладки + «Ещё» ---------- */
+// Чтобы добавить новый раздел в меню «Ещё», допиши его сюда и добавь render-функцию в RENDERERS.
+const MORE_SECTIONS = [
+  { tab: "goals", icon: "💰", title: "Копилка", desc: "Копим вместе на цели" },
+  { tab: "bucket", icon: "✅", title: "Мечты", desc: "Что хотим сделать вместе" },
+];
+const isMoreSection = (tab) => MORE_SECTIONS.some((x) => x.tab === tab);
+
+function highlightTab() {
+  const active = isMoreSection(state.tab) ? "more" : state.tab;
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("active", x.dataset.tab === active));
+  const back = tg?.BackButton;
+  if (back && tg.isVersionAtLeast?.("6.1")) isMoreSection(state.tab) ? back.show() : back.hide();
+}
+
+function goTo(tab) {
+  state.tab = tab;
+  highlightTab();
+  window.scrollTo(0, 0);
+  render();
+}
+
 document.querySelectorAll("#tabs button").forEach((b) =>
-  b.addEventListener("click", () => {
-    haptic();
-    document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("active", x === b));
-    state.tab = b.dataset.tab;
-    window.scrollTo(0, 0);
-    render();
-  })
+  b.addEventListener("click", () => { haptic(); goTo(b.dataset.tab); })
 );
+if (tg?.BackButton && tg.isVersionAtLeast?.("6.1")) tg.BackButton.onClick(() => { haptic(); goTo("more"); });
+
+function renderMore() {
+  view.innerHTML = `
+    <h2>Ещё</h2>
+    <div class="more-grid">
+      ${MORE_SECTIONS.map((x) => `<button class="more-item" data-go="${x.tab}"><span class="mi">${x.icon}</span><b>${x.title}</b><small>${x.desc}</small></button>`).join("")}
+    </div>`;
+  view.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { haptic(); goTo(b.dataset.go); }));
+}
+
+// кнопка «← Ещё» вверху разделов из меню (в Telegram есть ещё и системная кнопка «Назад»)
+function backLink() {
+  if (!isMoreSection(state.tab)) return;
+  const a = document.createElement("button");
+  a.className = "back-link"; a.textContent = "← Ещё";
+  a.onclick = () => { haptic(); goTo("more"); };
+  view.prepend(a);
+}
+
+const RENDERERS = { us: () => renderUs(), pet: () => renderPet(), wishes: () => renderWishes(), mood: () => renderMood(),
+  more: () => renderMore(), goals: () => renderGoals(), bucket: () => renderBucket() };
 
 async function render() {
-  const fn = { us: renderUs, pet: renderPet, wishes: renderWishes, mood: renderMood, goals: renderGoals, bucket: renderBucket }[state.tab];
-  try { await fn(); } catch (e) { console.error(e); }
+  const fn = RENDERERS[state.tab] || renderUs;
+  try { await fn(); backLink(); } catch (e) { console.error(e); }
 }
 
 /* ---------- связка пары ---------- */
