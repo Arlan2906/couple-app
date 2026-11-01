@@ -5,7 +5,7 @@ tg?.expand();
 const $ = (s, el = document) => el.querySelector(s);
 const view = $("#view");
 const START_TAB = new URLSearchParams(location.search).get("tab");
-const state = { me: null, tab: ["us", "wishes", "mood", "goals", "bucket"].includes(START_TAB) ? START_TAB : "us", wishSide: "mine" };
+const state = { me: null, tab: ["us", "pet", "wishes", "mood", "goals", "bucket"].includes(START_TAB) ? START_TAB : "us", wishSide: "mine" };
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const money = (n) => `${Number(n || 0).toLocaleString("ru-RU")} ₸`;
@@ -103,7 +103,7 @@ document.querySelectorAll("#tabs button").forEach((b) =>
 );
 
 async function render() {
-  const fn = { us: renderUs, wishes: renderWishes, mood: renderMood, goals: renderGoals, bucket: renderBucket }[state.tab];
+  const fn = { us: renderUs, pet: renderPet, wishes: renderWishes, mood: renderMood, goals: renderGoals, bucket: renderBucket }[state.tab];
   try { await fn(); } catch (e) { console.error(e); }
 }
 
@@ -396,5 +396,109 @@ const bucketCard = (b) => `
     </div>
     ${b.photo ? `<img loading="lazy" src="${photoUrl(b.photo)}" alt="">` : ""}
   </div>`;
+
+/* ---------- 🐣 Питомец ---------- */
+const KIND_NAMES = { cat: "Котик", dog: "Пёсик", fox: "Лисёнок", panda: "Панда", bunny: "Зайка", hamster: "Хомяк", penguin: "Пингвин", dragon: "Дракоша" };
+const STAGE_NAMES = { egg: "яйцо", baby: "малыш", kid: "подросток", adult: "взрослый", legend: "легенда" };
+const ACT_NAMES = { feed: "покормил(а) 🍎", pet: "погладил(а) 🤚" };
+const ago = (m) => (m < 1 ? "только что" : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.floor(m / 60)} ч назад` : `${Math.floor(m / 1440)} дн назад`);
+const cdText = (sec) => (sec >= 3600 ? `через ${Math.floor(sec / 3600)} ч ${Math.ceil((sec % 3600) / 60)} мин` : `через ${Math.max(1, Math.ceil(sec / 60))} мин`);
+
+async function renderPet() {
+  const data = await api("/api/pet");
+  if (!data.pet) return renderPetPicker(data.kinds);
+  drawPet(data.pet);
+}
+
+function renderPetPicker(kinds) {
+  let picked = "cat";
+  view.innerHTML = `
+    <div class="card pet-new">
+      <div class="egg-big">🥚</div>
+      <h3>Заведите общего питомца</h3>
+      <p class="muted">Он вылупится из яйца и будет расти от всего, что вы делаете вместе: настроение, моменты, мечты. Его нужно кормить и гладить — вдвоём.</p>
+      <label>Кто будет?</label>
+      <div class="kinds">${Object.entries(kinds).map(([k, e]) => `<button data-kind="${k}" class="${k === picked ? "on" : ""}"><span>${e}</span>${KIND_NAMES[k] || k}</button>`).join("")}</div>
+      <label>Как назовём?</label>
+      <input id="petName" maxlength="40" placeholder="Пончик">
+      <button id="petCreate" style="width:100%;margin-top:14px">Получить яйцо 🥚</button>
+    </div>`;
+  view.querySelectorAll("[data-kind]").forEach((b) => (b.onclick = () => {
+    picked = b.dataset.kind; haptic();
+    view.querySelectorAll("[data-kind]").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  $("#petCreate").onclick = async () => {
+    const name = $("#petName").value.trim();
+    if (!name) return toast("Придумайте имя 🙂");
+    const d = await api("/api/pet", { method: "POST", json: { kind: picked, name } });
+    success(); drawPet(d.pet);
+  };
+}
+
+function drawPet(p) {
+  const egg = p.stage === "egg";
+  const lvlPct = egg ? Math.min(100, Math.round((p.xp / p.hatch_xp) * 100)) : Math.round((p.level_xp / p.level_need) * 100);
+  const btn = (action, label) => {
+    const cd = p.cooldowns[action];
+    return `<button class="pet-btn ${cd ? "ghost" : ""}" data-act="${action}" ${cd ? "disabled" : ""}>${label}${cd ? `<small>${cdText(cd)}</small>` : ""}</button>`;
+  };
+  view.innerHTML = `
+    <div class="pet-card st-${p.status} sg-${p.stage}">
+      <div class="pet-top"><button class="pet-name" id="rename">${esc(p.name)} ✎</button><span class="pet-lvl">${egg ? "яйцо" : `ур. ${p.level} · ${STAGE_NAMES[p.stage]}`}</span></div>
+      <div class="pet-stage" id="petTap">
+        ${p.stage === "legend" ? `<div class="crown">👑</div>` : ""}
+        <div class="pet-emoji">${egg ? "🥚" : p.emoji}</div>
+        ${p.status === "hungry" || p.status === "sad" ? `<div class="bubble">🍖?</div>` : ""}
+        ${p.status === "bored" ? `<div class="bubble">💭💞</div>` : ""}
+        ${p.status === "happy" ? `<div class="bubble sm">✨</div>` : ""}
+        <div class="shadow"></div>
+      </div>
+      <div class="pet-status">${esc(p.status_text)}</div>
+    </div>
+    <div class="card">
+      ${egg ? "" : `<div class="stat"><span>🍖 Сытость</span><div class="bar"><i style="width:${p.food}%" class="${p.food < 25 ? "low" : ""}"></i></div><b>${p.food}</b></div>
+      <div class="stat"><span>💗 Радость</span><div class="bar"><i style="width:${p.joy}%" class="${p.joy < 25 ? "low" : ""}"></i></div><b>${p.joy}</b></div>`}
+      <div class="stat"><span>${egg ? "🐣 До вылупления" : "⭐ Опыт"}</span><div class="bar"><i style="width:${lvlPct}%" class="xp"></i></div><b>${lvlPct}%</b></div>
+    </div>
+    <div class="pet-actions">
+      ${egg ? btn("pet", "🤲 Согреть") : btn("feed", "🍎 Покормить") + btn("pet", "🤚 Погладить")}
+    </div>
+    <h2>Как ${esc(p.name)} растёт</h2>
+    <div class="card muted grow-list">
+      <div>😊 Отметить настроение — <b>+10</b> (оба за день — ещё <b>+10</b>)</div>
+      <div>📸 Новый момент — <b>+15</b></div>
+      <div>✅ Сбывшаяся мечта — <b>+40</b></div>
+      <div>💰 Пополнить копилку, 🎁 желание, ✨ новая мечта — <b>+5</b></div>
+      <div>🍎 Покормить, 🤚 погладить — <b>+3</b> (у каждого своя перезарядка)</div>
+    </div>
+    ${p.log.length ? `<h2>Недавно</h2><div class="card">${p.log.map((l) => `<div class="row between log"><span>${esc(l.who)} ${ACT_NAMES[l.action] || l.action}</span><span class="muted">${ago(l.ago_min)}</span></div>`).join("")}</div>` : ""}
+  `;
+  view.querySelectorAll("[data-act]").forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const d = await api(`/api/pet/${b.dataset.act}`, { method: "POST" });
+      success(); hearts(b.dataset.act === "feed" ? "🍎" : "💗");
+      setTimeout(() => drawPet(d.pet), 700);
+    } catch { b.disabled = false; }
+  }));
+  $("#petTap").onclick = () => {
+    haptic("soft"); const e = $(".pet-emoji"); e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing"); hearts("💕", 2);
+  };
+  $("#rename").onclick = () => openSheet(
+    `<h3>Новое имя</h3><label>Имя</label><input name="n" maxlength="40" value="${esc(p.name)}" required>`,
+    async (f) => { await api("/api/pet", { method: "PATCH", json: { name: f.n.value } }); }
+  );
+}
+
+function hearts(ch, n = 5) {
+  const stage = $("#petTap");
+  if (!stage) return;
+  for (let i = 0; i < n; i++) {
+    const h = document.createElement("span");
+    h.className = "heart"; h.textContent = ch;
+    h.style.left = `${35 + Math.random() * 30}%`; h.style.animationDelay = `${i * 90}ms`;
+    stage.appendChild(h); setTimeout(() => h.remove(), 1400);
+  }
+}
 
 boot();

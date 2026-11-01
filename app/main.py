@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from . import config
 from .api import router
 from .reminders import router as reminders_router
+from .pet import router as pet_router
 from .bot import bot, dp, setup_bot
 from .db import init_db
 
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=config.APP_TITLE, lifespan=lifespan)
 app.include_router(router)
 app.include_router(reminders_router)
+app.include_router(pet_router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

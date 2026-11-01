@@ -167,3 +167,60 @@ textarea { resize: vertical; min-height: 70px; }
 .ticker > div { background: rgba(255,255,255,.18); border-radius: 12px; padding: 8px 2px 6px; text-align: center; }
 .ticker b { display: block; font-size: 20px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .ticker span { display: block; font-size: 10px; font-weight: 700; opacity: .9; }
+
+/* питомец */
+.tabs button { max-width: 96px; font-size: 10.5px; }
+.pet-new { text-align: center; }
+.pet-new h3 { margin: 4px 0 6px; font-size: 19px; }
+.egg-big { font-size: 72px; animation: wobble 2.4s ease-in-out infinite; display: inline-block; }
+.kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.kinds button { background: var(--bg); color: var(--text); padding: 8px 2px; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.kinds button span { font-size: 30px; }
+.kinds button.on { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
+
+.pet-card {
+  border-radius: 24px; padding: 16px 16px 14px; margin-top: 6px; color: #fff; position: relative; overflow: hidden;
+  background: linear-gradient(160deg, #8fd3ff, #c8b6ff 60%, #ffb3d1);
+  box-shadow: 0 10px 30px rgba(120, 100, 200, .28);
+}
+.pet-card.st-hungry, .pet-card.st-sad { background: linear-gradient(160deg, #b9c2d0, #c9b7c8); }
+.pet-card.st-bored { background: linear-gradient(160deg, #a8c0e8, #c8b6ff); }
+.pet-card.sg-egg { background: linear-gradient(160deg, #ffe29a, #ffb38a 70%, #ff9aa8); }
+.pet-top { display: flex; justify-content: space-between; align-items: center; }
+.pet-name { background: rgba(255,255,255,.25); color: #fff; font-size: 17px; font-weight: 800; padding: 6px 12px; }
+.pet-lvl { font-weight: 800; font-size: 13px; background: rgba(0,0,0,.12); padding: 5px 10px; border-radius: 10px; }
+.pet-stage { position: relative; height: 190px; display: flex; align-items: flex-end; justify-content: center; cursor: pointer; user-select: none; }
+.pet-emoji { line-height: 1; position: relative; z-index: 1; animation: idle 2.6s ease-in-out infinite; margin-bottom: 18px; }
+.sg-egg .pet-emoji { font-size: 92px; animation: wobble 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.sg-baby .pet-emoji { font-size: 72px; }
+.sg-kid .pet-emoji { font-size: 98px; }
+.sg-adult .pet-emoji, .sg-legend .pet-emoji { font-size: 124px; }
+.st-hungry .pet-emoji, .st-sad .pet-emoji { animation: sad 3s ease-in-out infinite; filter: saturate(.6); }
+.st-happy .pet-emoji { animation: hop 1.4s ease-in-out infinite; }
+.pet-emoji.boing { animation: boing .5s ease !important; }
+.shadow { position: absolute; bottom: 10px; width: 90px; height: 14px; border-radius: 50%; background: rgba(0,0,0,.14); }
+.crown { position: absolute; top: 2px; font-size: 40px; z-index: 2; animation: idle 2.6s ease-in-out infinite; }
+.bubble { position: absolute; top: 14px; right: 18%; background: #fff; color: var(--text); font-size: 18px; padding: 6px 10px; border-radius: 16px 16px 16px 4px; box-shadow: var(--shadow); animation: idle 2s ease-in-out infinite; }
+.bubble.sm { background: transparent; box-shadow: none; font-size: 26px; top: 30px; right: 22%; }
+.pet-status { text-align: center; font-weight: 700; opacity: .95; }
+.heart { position: absolute; bottom: 60px; font-size: 26px; animation: floatUp 1.3s ease-out forwards; z-index: 3; pointer-events: none; }
+
+.stat { display: grid; grid-template-columns: 118px 1fr 34px; align-items: center; gap: 8px; margin: 4px 0; }
+.stat span { font-weight: 700; font-size: 13px; }
+.stat b { text-align: right; font-size: 13px; }
+.stat .bar { margin: 0; }
+.stat .bar i.low { background: linear-gradient(90deg, #ff8a5c, #ff5c5c); }
+.stat .bar i.xp { background: linear-gradient(90deg, #8f7bff, #c86bff); }
+.pet-actions { display: flex; gap: 10px; margin-top: 4px; }
+.pet-btn { flex: 1; padding: 14px 8px; font-size: 16px; display: flex; flex-direction: column; align-items: center; }
+.pet-btn small { font-size: 11px; font-weight: 600; opacity: .85; }
+.grow-list div { padding: 3px 0; }
+.grow-list b { color: var(--accent); }
+.log { padding: 4px 0; font-size: 14px; }
+
+@keyframes idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes hop { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-16px) scale(1.03, .97); } 60% { transform: translateY(0) scale(1.05, .95); } }
+@keyframes sad { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(2px) rotate(2deg); } }
+@keyframes wobble { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(-8deg); } 85% { transform: rotate(7deg); } 92% { transform: rotate(-3deg); } }
+@keyframes boing { 0% { transform: scale(1); } 30% { transform: scale(1.25, .8); } 60% { transform: scale(.9, 1.15); } 100% { transform: scale(1); } }
+@keyframes floatUp { from { transform: translateY(0) scale(.6); opacity: 1; } to { transform: translateY(-120px) scale(1.2); opacity: 0; } }

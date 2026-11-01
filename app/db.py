@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import (BigInteger, Boolean, Date, DateTime, ForeignKey, Integer,
+from sqlalchemy import (BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Integer,
                         String, Text, UniqueConstraint, func)
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -103,6 +103,30 @@ class BucketItem(Base):
     photo_file_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
 
+class Pet(Base):
+    """Общий питомец пары (тамагочи)"""
+    __tablename__ = "pets"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    couple_id: Mapped[int] = mapped_column(ForeignKey("couples.id"), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(16))
+    name: Mapped[str] = mapped_column(String(40))
+    food: Mapped[float] = mapped_column(Float, default=80)   # сытость 0..100
+    joy: Mapped[float] = mapped_column(Float, default=80)    # радость 0..100
+    xp: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)   # когда последний раз пересчитывали убывание (UTC)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class PetAction(Base):
+    """Кто когда кормил/гладил — для перезарядки кнопок и ленты"""
+    __tablename__ = "pet_actions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger)
+    action: Mapped[str] = mapped_column(String(24))
+    at: Mapped[datetime] = mapped_column(DateTime)
+
+
 class SentLog(Base):
     """Какие рассылки уже ушли (защита от повторного запуска cron)"""
     __tablename__ = "sent_log"
@@ -121,4 +145,4 @@ async def get_session():
 
 
 __all__ = ["AsyncSession", "Session", "init_db", "get_session", "Couple", "User", "Moment",
-           "Wish", "Mood", "Goal", "Deposit", "BucketItem", "SentLog"]
+           "Wish", "Mood", "Goal", "Deposit", "BucketItem", "SentLog", "Pet", "PetAction"]

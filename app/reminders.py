@@ -15,6 +15,7 @@ from . import config
 from .api import today
 from .bot import notify
 from .db import Mood, SentLog, Session, User
+from .pet import hungry_line
 
 router = APIRouter()
 
@@ -47,9 +48,11 @@ async def mood_reminder(slot: str, key: str = "", force: bool = False):
         by_couple.setdefault(u.couple_id, []).append(u)
 
     sent = 0
-    for members in by_couple.values():
+    for couple_id, members in by_couple.items():
         if len(members) < 2:
             continue
+        async with Session() as s:
+            pet_line = await hungry_line(s, couple_id)
         for u in members:
             partner = next(m for m in members if m.id != u.id)
             text = TEXTS[slot].format(name=u.name)
@@ -59,6 +62,6 @@ async def mood_reminder(slot: str, key: str = "", force: bool = False):
             if pm:
                 note = f" — «{pm.note}»" if pm.note else ""
                 text += f"\n\n{partner.name} сегодня: {pm.emoji}{note}"
-            await notify(u.id, text, button="😊 Отметить", tab="mood")
+            await notify(u.id, text + pet_line, button="😊 Отметить", tab="mood")
             sent += 1
     return {"ok": True, "sent": sent}

@@ -12,6 +12,7 @@ from .bot import bot, load_photo, notify, store_photo
 from .db import (AsyncSession, BucketItem, Couple, Deposit, Goal, Moment, Mood, User, Wish,
                  get_session)
 from .auth import current_user, paired_user
+from .pet import award
 
 router = APIRouter(prefix="/api")
 TZ = ZoneInfo(config.TIMEZONE)
@@ -172,6 +173,7 @@ async def moments_create(
                happened_on=happened_on, photo_file_id=file_id)
     s.add(m)
     await s.commit()
+    await award(s, user.couple_id, "moment")
     await ping_partner(s, user, f"📸 {user.name} добавил(а) момент: «{m.title}»")
     return moment_out(m, {user.id: user.name})
 
@@ -211,6 +213,7 @@ async def wishes_create(body: WishIn, user: User = Depends(paired_user), s: Asyn
              link=body.link.strip(), price=body.price)
     s.add(w)
     await s.commit()
+    await award(s, user.couple_id, "wish")
     await ping_partner(s, user, f"🎁 В вишлисте {user.name} новое: «{w.title}»")
     return {"id": w.id}
 
@@ -292,6 +295,11 @@ async def moods_set(body: MoodIn, user: User = Depends(paired_user), s: AsyncSes
         m.emoji, m.note = body.emoji, body.note.strip()
     await s.commit()
     note = f": «{m.note}»" if m.note else ""
+    if first:
+        await award(s, user.couple_id, "mood")
+        partner = await partner_of(s, user)
+        if partner and (await s.execute(select(Mood.id).where(Mood.user_id == partner.id, Mood.day == d))).first():
+            await award(s, user.couple_id, "mood_both")
     await ping_partner(s, user, f"{m.emoji} Настроение {user.name} сегодня{note}")
     return {"ok": True}
 
@@ -335,6 +343,7 @@ async def goals_create(body: GoalIn, user: User = Depends(paired_user), s: Async
     g = Goal(couple_id=user.couple_id, title=body.title.strip(), target=body.target, emoji=body.emoji or "💰")
     s.add(g)
     await s.commit()
+    await award(s, user.couple_id, "goal")
     await ping_partner(s, user, f"{g.emoji} {user.name} создал(а) цель: «{g.title}» — {g.target:,} ₸".replace(",", " "))
     return {"id": g.id}
 
@@ -362,6 +371,8 @@ async def goals_deposit(gid: int, body: DepositIn, user: User = Depends(paired_u
         if before * 100 < g.target * mark <= after * 100:
             text += f"\n🎉 Цель на {mark}%!" if mark < 100 else "\n🏆 Цель достигнута!"
             break
+    if body.amount > 0:
+        await award(s, user.couple_id, "deposit")
     await ping_partner(s, user, text)
     return {"total": after}
 
@@ -398,6 +409,7 @@ async def bucket_create(body: BucketIn, user: User = Depends(paired_user), s: As
     b = BucketItem(couple_id=user.couple_id, author_id=user.id, title=body.title.strip())
     s.add(b)
     await s.commit()
+    await award(s, user.couple_id, "bucket_add")
     await ping_partner(s, user, f"✨ {user.name} добавил(а) мечту: «{b.title}»")
     return {"id": b.id}
 
@@ -420,6 +432,7 @@ async def bucket_toggle(
             b.photo_file_id = await store_photo(user.id, data, photo.filename)
     await s.commit()
     if b.done:
+        await award(s, user.couple_id, "bucket_done")
         await ping_partner(s, user, f"✅ Сбылось: «{b.title}»!")
     return {"done": b.done}
 
