@@ -697,7 +697,7 @@ function petFigure(p) {
 }
 
 function dogSvg() {
-  const fur = "#E9A55B", furDark = "#C9813D", cream = "#FCE6C6", ear = "#A8642C", ink = "#3B2A26";
+  const fur = "#EC9148", furDark = "#C86F2C", cream = "#FCE4C8", ear = "#A2501F", ink = "#3B2A26";
   return `
   <svg class="dog" viewBox="0 0 200 220" aria-label="собачка">
     <ellipse class="dog-shadow" cx="100" cy="208" rx="62" ry="8" fill="rgba(0,0,0,.13)"/>
