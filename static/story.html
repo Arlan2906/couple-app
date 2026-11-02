@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Наш мультик</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Neucha&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: one centered "cinema" player, caption card under the frame, controls row. Single night theme by choice. */
+:root{
+  --bg:#17121f; --panel:#221a2c; --line:#3b2f47; --fg:#f8ece4; --muted:#bcaabd;
+  --rose:#ff8fa8; --gold:#f5c46b;
+  --hand:'Neucha','Comic Sans MS',cursive; --body:'Nunito',system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(36px + env(safe-area-inset-bottom,0px))}
+.back{font:700 14px var(--body);color:var(--muted);background:none;border:0;padding:4px 0;cursor:pointer;align-self:flex-start}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header h1{font-family:var(--hand);font-weight:400;font-size:clamp(36px,9vw,54px);margin:0;line-height:1;text-wrap:balance}
+header h1 span{color:var(--rose)}
+header p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.stage{position:relative;aspect-ratio:4/3;max-width:100%;border-radius:20px;overflow:hidden;background:#0d0a12;
+  box-shadow:0 24px 60px -24px rgba(255,143,168,.45);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.stage svg{display:block;width:100%;height:100%}
+.bar{position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--rose)}
+.bar.run{animation:bar linear forwards}
+@keyframes bar{to{width:100%}}
+.startbtn{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);font:800 17px var(--body);padding:12px 26px;border-radius:999px;border:0;
+  background:var(--rose);color:#2a1220;cursor:pointer;box-shadow:0 8px 24px -6px rgba(255,143,168,.7);white-space:nowrap}
+.startbtn:focus-visible,.btn:focus-visible,.dot:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.cap{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 18px;min-height:104px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:800;min-height:15px}
+.captext{font-family:var(--hand);font-size:clamp(21px,4.8vw,26px);line-height:1.3;margin-top:4px}
+.captext.in{animation:capin .7s ease both}
+@keyframes capin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{font:700 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 13px;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.dots{display:flex;gap:5px;flex:1;justify-content:center;min-width:0;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:4px;background:var(--line);border:0;padding:0;cursor:pointer;transition:width .3s,background .3s}
+.dot.on{background:var(--rose);width:20px}
+.hint{color:var(--muted);font-size:13px;text-align:center;margin:0}
+
+/* scene animation */
+.hand{font-family:var(--hand)} .ui{font-family:var(--body)}
+.bob{animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-1.6px)}}
+.blink{transform-box:fill-box;transform-origin:center;animation:blink 4.2s infinite}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.pop{transform-box:fill-box;transform-origin:center bottom;animation:pop .55s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes pop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+.popbig{transform-box:fill-box;transform-origin:center;animation:popbig 1.2s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes popbig{0%{opacity:0;transform:scale(.2)}60%{opacity:1;transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+.rise{animation:rise 3.4s ease-in infinite both}
+@keyframes rise{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translateY(-80px) scale(1.15)}}
+.fall{transform-box:fill-box;transform-origin:center;animation:fall 7s linear infinite}
+@keyframes fall{from{transform:translate(0,-20px) rotate(0)}to{transform:translate(-40px,320px) rotate(400deg)}}
+.tw{animation:tw 3s ease-in-out infinite}
+@keyframes tw{50%{opacity:.25}}
+.flick{animation:flick 4s ease-in-out infinite}
+@keyframes flick{50%{opacity:.75}}
+.flick2{animation:flick2 .9s steps(3) infinite}
+@keyframes flick2{0%{opacity:1}33%{opacity:.8}66%{opacity:.93}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}15%{transform:scale(1.12)}30%{transform:scale(1)}45%{transform:scale(1.08)}}
+.drift-r{animation:dr 7s ease-in-out both}
+@keyframes dr{from{transform:translateX(-26px)}to{transform:translateX(26px)}}
+.drift-l{animation:dl 7s ease-in-out both}
+@keyframes dl{from{transform:translateX(26px)}to{transform:translateX(-26px)}}
+.drive{animation:drive 5s linear infinite}
+@keyframes drive{from{transform:translateX(-140px)}to{transform:translateX(560px)}}
+.sunup{animation:sunup 6.5s ease-out both}
+@keyframes sunup{from{transform:translateY(70px)}to{transform:translateY(0)}}
+.fadeout{animation:fadeout 5.5s ease-out both}
+@keyframes fadeout{from{opacity:.85}to{opacity:0}}
+.steam{animation:steam 2.4s ease-in-out infinite}
+@keyframes steam{0%{opacity:0;transform:translateY(3px)}40%{opacity:.8}100%{opacity:0;transform:translateY(-6px)}}
+.flame{transform-box:fill-box;transform-origin:center bottom;animation:flame .5s ease-in-out infinite alternate}
+@keyframes flame{from{transform:scale(1,1) rotate(-3deg)}to{transform:scale(.9,1.12) rotate(3deg)}}
+.glowtext{animation:flick 2.5s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){
+  .stage *{animation-duration:.001s!important;animation-iteration-count:1!important;animation-delay:0s!important}
+  .captext.in{animation:none}
+}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <button class="back" id="back" type="button">← Назад</button>
+  <header>
+    <h1>Арлан <span>+</span> Настя</h1>
+    <p>Мультик о том, как всё началось</p>
+  </header>
+
+  <div class="stage" id="stage" role="button" tabindex="0" aria-label="Следующая сцена">
+    <svg id="sv" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+    <div class="bar" id="bar"></div>
+    <button class="startbtn" id="start" type="button">▶ Смотреть</button>
+  </div>
+
+  <div class="cap" aria-live="polite">
+    <div class="eyebrow" id="eb"></div>
+    <div class="captext" id="ct"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prev" type="button" aria-label="Назад">◀</button>
+    <button class="btn" id="play" type="button">❚❚ Пауза</button>
+    <div class="dots" id="dots"></div>
+    <button class="btn" id="mus" type="button">♪ Музыка</button>
+    <button class="btn" id="next" type="button" aria-label="Вперёд">▶</button>
+  </div>
+  <p class="hint">Нажми на кадр, чтобы перейти к следующей сцене</p>
+</div>
+
+<script>
+/* Telegram Mini App: системная кнопка «Назад» возвращает в приложение */
+const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
+const goBack=()=>{if(history.length>1)history.back();else location.href='/'};
+document.getElementById('back').onclick=goBack;
+if(tg?.BackButton&&tg.isVersionAtLeast?.('6.1')){tg.BackButton.show();tg.BackButton.onClick(goBack)}
+/* ---------- helpers ---------- */
+const R=seed=>{let s=seed;return()=>(s=(s*16807)%2147483647)/2147483647};
+const f1=n=>n.toFixed(1);
+function stars(n,maxY=150,seed=3){const r=R(seed);let o='';for(let k=0;k<n;k++){o+=`<circle class="tw" style="animation-delay:${f1(r()*3)}s" cx="${f1(r()*400)}" cy="${f1(r()*maxY)}" r="${(r()*1.1+.3).toFixed(2)}" fill="#fff"/>`}return o}
+const HEART='M0 8 C -10 0 -12 -8 -6 -10 C -3 -11 -1 -9 0 -7 C 1 -9 3 -11 6 -10 C 12 -8 10 0 0 8Z';
+const heart=(x,y,s,c)=>`<path transform="translate(${x} ${y}) scale(${s})" d="${HEART}" fill="${c}"/>`;
+function rising(x,y,n,seed=9,base=0){const r=R(seed);let o='';for(let k=0;k<n;k++){o+=`<g class="rise" style="animation-delay:${f1(base+k*.6+r()*.3)}s">${heart(f1(x+(r()-.5)*40),f1(y+(r()-.5)*10),(r()*.5+.7).toFixed(2),k%2?'#ff8fa8':'#ff5f7e')}</g>`}return o}
+function bubble(x,y,t,d=0,side='l'){const w=t.length*6.4+24,bx=x-w/2;
+  const tail=side==='none'?`<circle cx="${x-8}" cy="${y+17}" r="3" fill="#fffaf5" stroke="#2b2030" stroke-width="1.2"/><circle cx="${x-13}" cy="${y+24}" r="2" fill="#fffaf5" stroke="#2b2030" stroke-width="1.2"/>`
+   :side==='l'?`<path d="M${x-w/4},${y+10} l-7,10 l14,-10" fill="#fffaf5" stroke="#2b2030" stroke-width="1.4" stroke-linejoin="round"/>`
+   :`<path d="M${x+w/4},${y+10} l7,10 l-14,-10" fill="#fffaf5" stroke="#2b2030" stroke-width="1.4" stroke-linejoin="round"/>`;
+  return `<g class="pop" style="animation-delay:${d}s">${tail}<rect x="${f1(bx)}" y="${y-13}" width="${f1(w)}" height="24" rx="12" fill="#fffaf5" stroke="#2b2030" stroke-width="1.4"/><rect x="${f1(bx+1)}" y="${y+5}" width="${f1(w-2)}" height="5" fill="#fffaf5"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="11.5" font-weight="800" class="ui" fill="#2b2030">${t}</text></g>`}
+const hu=(x,y,s,w)=>[x+(w+10)*s,y-67*s];
+
+/* ---------- characters ---------- */
+const G={sk:'#c68a60',hair:'#1a120e'}, N={sk:'#f3c4a8',hair:'#5b3a29'};
+function eyes(o,dx,y,col){
+  if(o.mood==='laugh')return `<path d="M${-dx-3},${y+1} Q${-dx},${y-3} ${-dx+3},${y+1} M${dx-3},${y+1} Q${dx},${y-3} ${dx+3},${y+1}" stroke="#2a1a14" stroke-width="1.7" fill="none" stroke-linecap="round"/>`;
+  return `<g class="blink"><circle cx="${-dx}" cy="${y}" r="2.2" fill="${col}"/><circle cx="${dx}" cy="${y}" r="2.2" fill="${col}"/><circle cx="${-dx+.7}" cy="${y-.8}" r=".7" fill="#fff"/><circle cx="${dx+.7}" cy="${y-.8}" r=".7" fill="#fff"/></g>`}
+function mouth(o,y){const m=o.mood||'smile';
+  if(m==='laugh')return `<path d="M-7,${y-2} Q0,${y+9} 7,${y-2}Z" fill="#7a2e33"/><path d="M-5,${y-1.3} H5" stroke="#fff" stroke-width="1.7"/>`;
+  if(m==='o')return `<ellipse cx="0" cy="${y}" rx="2.4" ry="3" fill="#7a2e33"/>`;
+  return `<path d="M-5.5,${y-1.5} Q0,${y+3.8} 5.5,${y-1.5}" stroke="#5a2a24" stroke-width="1.8" fill="none" stroke-linecap="round"/>`}
+function blush(o,y,dx=12){const op=o.blush?.6:.22;return `<ellipse cx="${-dx}" cy="${y}" rx="4.2" ry="2.5" fill="#ff7f8e" opacity="${op}"/><ellipse cx="${dx}" cy="${y}" rx="4.2" ry="2.5" fill="#ff7f8e" opacity="${op}"/>`}
+function arms(o,top,sk,w){
+  const L=`<path d="M${-w},-49 Q${-w-8},-38 ${-w-5},-27" stroke="${top}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="${-w-5}" cy="-25" r="4" fill="${sk}"/>`;
+  const Rr=o.arm==='up'
+    ?`<path d="M${w},-49 Q${w+12},-50 ${w+10},-64" stroke="${top}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="${w+10}" cy="-67" r="4" fill="${sk}"/>`
+    :`<path d="M${w},-49 Q${w+8},-38 ${w+5},-27" stroke="${top}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="${w+5}" cy="-25" r="4" fill="${sk}"/>`;
+  return L+Rr}
+const apron=(c='#8d8a6f',logo=true)=>`<path d="M-13,-47 L13,-47 L15,-14 L-15,-14Z" fill="${c}"/><path d="M-11,-47 L-15,-54 M11,-47 L15,-54" stroke="${c}" stroke-width="2.5"/>${logo?`<circle cx="0" cy="-33" r="4.5" fill="none" stroke="#f3f0e6" stroke-width="1.2"/><circle cx="-9" cy="-44" r="1.6" fill="#cfcfcf"/><circle cx="9" cy="-44" r="1.6" fill="#cfcfcf"/>`:`<rect x="-6" y="-32" width="12" height="8" rx="2" fill="rgba(255,255,255,.25)"/>${heart(0,-40,.45,'#fff')}`}`;
+
+function guy(x,y,o={}){const s=o.s||1.38,out=o.outfit||'fleece';
+  const top={fleece:'#1d1d23',apron:'#efece5',black:'#151518'}[out];
+  const pants=out==='fleece'?'#a9aab0':'#2a2a30';
+  let ex='';
+  if(out==='fleece')ex=`<path d="M0,-53 V-25" stroke="#4a4a55" stroke-width="1.3"/><path d="M-6,-55 L0,-50 L6,-55" stroke="#4a4a55" stroke-width="1.6" fill="none"/><rect x="5" y="-46" width="6" height="3.4" fill="#c8303a"/><path d="M5,-44.3 h6 M7.4,-46 v3.4" stroke="#fff" stroke-width=".7"/>`;
+  if(out==='apron')ex=apron();
+  if(out==='black')ex=`<path d="M-7,-54 L0,-46 L7,-54" stroke="#33333b" stroke-width="2" fill="none"/>`;
+  if(o.apronC)ex+=apron(o.apronC,false);
+  if(o.bag)ex+=`<path d="M-12,-53 L-14,-28 M12,-53 L14,-28" stroke="#dcdcd6" stroke-width="3.2"/>`;
+  const hair=[[-17,-80,7],[-12,-90,7.5],[-3,-95,8],[7,-94,8],[15,-88,7.5],[19,-79,6],[-19,-71,4.5],[19,-71,4.5],[-8,-86,6.5],[3,-88,6.5],[12,-84,5]].map(([a,b,r])=>`<circle cx="${a}" cy="${b}" r="${r}"/>`).join('');
+  return `<g transform="translate(${x} ${y}) scale(${s})"><g class="${o.cls||'bob'}">
+<rect x="-11" y="-26" width="9" height="25" rx="3" fill="${pants}"/><rect x="2" y="-26" width="9" height="25" rx="3" fill="${pants}"/>
+<ellipse cx="-7" cy="-1" rx="7" ry="3.2" fill="#222"/><ellipse cx="7" cy="-1" rx="7" ry="3.2" fill="#222"/>
+<path d="M-18,-24 Q-20,-54 0,-55 Q20,-54 18,-24Z" fill="${top}"/>${ex}
+${arms(o,top,G.sk,14)}
+<rect x="-4" y="-60" width="8" height="8" fill="${G.sk}"/>
+<circle cx="-19" cy="-74" r="4.5" fill="${G.sk}"/><circle cx="19" cy="-74" r="4.5" fill="${G.sk}"/>
+<circle cx="0" cy="-75" r="19" fill="${G.sk}"/>
+<g fill="${G.hair}">${hair}</g>
+${blush(o,-66)}${eyes(o,9.5,-75.5,'#2a1a14')}
+<g fill="rgba(255,255,255,.16)" stroke="#2b2b30" stroke-width="1.5"><rect x="-15" y="-80.5" width="11" height="9" rx="2.2"/><rect x="4" y="-80.5" width="11" height="9" rx="2.2"/></g>
+<path d="M-4,-77 H4 M-15,-77 L-19,-76 M15,-77 L19,-76" stroke="#2b2b30" stroke-width="1.3"/>
+${mouth(o,-63)}
+</g></g>`}
+
+function girl(x,y,o={}){const s=o.s||1.3,out=o.outfit||'leather';
+  const top={leather:'#4b2d21',hoodie:'#eaa79c',apron:'#efece5',black:'#18171b'}[out];
+  const pants=out==='hoodie'?'#8e8f97':'#202027';
+  const cross=`<path d="M0,-44 v4.5 M-1.5,-42.6 h3" stroke="#eee5d2" stroke-width=".9"/>`;
+  let ex='';
+  if(out==='leather')ex=`<path d="M-6,-53 L0,-38 L6,-53Z" fill="#2b1c16"/><path d="M-6,-53 L-11,-47 L-4,-44Z M6,-53 L11,-47 L4,-44Z" fill="#6a4231"/>${cross}`;
+  if(out==='hoodie')ex=`<path d="M-9,-53 Q0,-46 9,-53" stroke="#d48d83" stroke-width="2.6" fill="none"/><path d="M-3,-50 v9 M3,-50 v9" stroke="#f8d6d0" stroke-width="1.2"/><path d="M-11,-35 H11 V-28 H-11Z" fill="#df978c"/>`;
+  if(out==='apron')ex=apron();
+  if(out==='black')ex=`<path d="M-6,-53 Q0,-41 6,-53" stroke="#eee5d2" stroke-width=".7" fill="none"/>${cross}`;
+  if(o.apronC)ex+=apron(o.apronC,false);
+  const back=o.hair==='pony'?`<ellipse cx="0" cy="-78" rx="19.5" ry="18" fill="${N.hair}"/>`
+    :`<path d="M-21,-74 Q-23,-44 -17,-35 Q-8,-31 0,-35 Q8,-31 17,-35 Q23,-44 21,-74 Q20,-95 0,-95 Q-20,-95 -21,-74Z" fill="${N.hair}"/>`;
+  const lash=o.mood==='laugh'?'':`<path d="M-11,-74.5 l-2,-1.6 M11,-74.5 l2,-1.6" stroke="#2a1a14" stroke-width="1.1"/>`;
+  return `<g transform="translate(${x} ${y}) scale(${s})"><g class="${o.cls||'bob'}">
+${back}
+<rect x="-9.5" y="-26" width="8" height="25" rx="3" fill="${pants}"/><rect x="1.5" y="-26" width="8" height="25" rx="3" fill="${pants}"/>
+<ellipse cx="-6" cy="-1" rx="6" ry="3" fill="#2a2228"/><ellipse cx="6" cy="-1" rx="6" ry="3" fill="#2a2228"/>
+<path d="M-15,-24 Q-17,-52 0,-53 Q17,-52 15,-24Z" fill="${top}"/>${ex}
+${arms(o,top,N.sk,13)}
+<rect x="-3.5" y="-58" width="7" height="7" fill="${N.sk}"/>
+<circle cx="0" cy="-73" r="18" fill="${N.sk}"/>
+<path d="M-18.6,-68 Q-21,-93 0,-92 Q21,-93 18.6,-68 Q17,-83 3,-86 Q0,-84 -3,-86 Q-17,-83 -18.6,-68Z" fill="${N.hair}"/>
+<circle cx="-18" cy="-67" r="1.3" fill="#ece6d8"/><circle cx="18" cy="-67" r="1.3" fill="#ece6d8"/>
+<g fill="#c98a6c" opacity=".6"><circle cx="-10" cy="-67" r=".6"/><circle cx="-7" cy="-66" r=".6"/><circle cx="7" cy="-66" r=".6"/><circle cx="10" cy="-67" r=".6"/></g>
+${blush(o,-65,11)}${eyes(o,8,-72.5,'#3f7457')}${lash}
+${mouth(o,-62)}
+</g></g>`}
+
+/* ---------- props ---------- */
+const cup=(x,y)=>`<g transform="translate(${f1(x)} ${f1(y)})"><path class="steam" d="M-1,-6 q-3,-4 0,-8 q3,-4 0,-8" stroke="#fff" stroke-opacity=".75" fill="none" stroke-width="1.3"/><path d="M-5,0 L5,0 L4,12 L-4,12Z" fill="#f4efe6"/><rect x="-6" y="-2" width="12" height="3" rx="1" fill="#6b4a36"/><rect x="-4.6" y="4" width="9.2" height="4" fill="#b98a62"/></g>`;
+const tray=(x,y)=>`<g transform="translate(${f1(x)} ${f1(y)})"><rect x="-10" y="-11" width="7" height="9" rx="1.5" fill="#fff"/><rect x="2" y="-13" width="6" height="11" rx="1" fill="#e8d7c0"/><ellipse cx="0" cy="-1" rx="17" ry="3.6" fill="#3a3a40"/></g>`;
+const phone=(x,y)=>`<g transform="translate(${f1(x)} ${f1(y)})"><rect x="-5.5" y="-10" width="11" height="19" rx="2.4" fill="#26222b"/><rect x="-4.2" y="-8.3" width="8.4" height="15" rx="1.2" fill="#9fd0ff" class="flick"/></g>`;
+function bouquet(x,y){const r=R(21);let ro='';const pts=[];for(let k=0;k<30;k++){const a=r()*Math.PI*2,d=Math.sqrt(r());pts.push([Math.cos(a)*d*30,Math.sin(a)*d*11-19])}
+  pts.sort((a,b)=>a[1]-b[1]).forEach(([a,b])=>{ro+=`<circle cx="${f1(a)}" cy="${f1(b)}" r="5.3" fill="#fbd0d4"/><circle cx="${f1(a)}" cy="${f1(b)}" r="2.7" fill="#ec7f98"/>`});
+  return `<g transform="translate(${x} ${y})"><path d="M-37,-16 L37,-16 L9,48 L-9,48Z" fill="#f4a6c8"/><ellipse cx="0" cy="-19" rx="34" ry="13" fill="#2f6b3e"/>${ro}<path d="M-39,-12 Q0,6 39,-12 L31,10 Q0,22 -31,10Z" fill="#e87cb0"/><path d="M-10,40 L10,40 L17,57 L0,48 L-17,57Z" fill="#f8b6d4"/></g>`}
+const popcorn=(x,y)=>`<g transform="translate(${x} ${y})"><g fill="#fff4cf"><circle cx="-8" cy="-21" r="5"/><circle cx="0" cy="-24" r="5.5"/><circle cx="8" cy="-21" r="5"/><circle cx="-3" cy="-19" r="4"/><circle cx="4" cy="-19" r="4"/></g><path d="M-12,-18 L12,-18 L9,8 L-9,8Z" fill="#fff"/><path d="M-8,-18 L-6.5,8 L-3.5,8 L-4.5,-18Z M3.5,-18 L3,8 L6,8 L8,-18Z" fill="#d8323f"/></g>`;
+function benchBack(x,g,w,s=1.35){return `<g fill="#6b4630"><rect x="${x-w/2}" y="${g-62*s}" width="${w}" height="${7*s}" rx="2"/><rect x="${x-w/2}" y="${g-50*s}" width="${w}" height="${7*s}" rx="2"/></g>`}
+function benchFront(x,g,w,s=1.35){return `<rect x="${x-w/2-4}" y="${g-28*s}" width="${w+8}" height="${8*s}" rx="2" fill="#87593b"/><rect x="${x-w/2+6}" y="${g-17*s}" width="6" height="${17*s}" fill="#2c2a30"/><rect x="${x+w/2-12}" y="${g-17*s}" width="6" height="${17*s}" fill="#2c2a30"/>`}
+function sparkle(x,y,d,c='#ffe9a8'){return `<g class="pop" style="animation-delay:${d}s"><path transform="translate(${x} ${y})" d="M0,-7 L1.6,-1.6 L7,0 L1.6,1.6 L0,7 L-1.6,1.6 L-7,0 L-1.6,-1.6Z" fill="${c}"/></g>`}
+const label=(x,y,t,anchor='start')=>{const w=t.length*7.4+18;const rx=anchor==='end'?x-w:x;return `<rect x="${rx}" y="${y-14}" width="${w}" height="21" rx="10.5" fill="rgba(20,14,28,.55)"/><text x="${rx+w/2}" y="${y+1}" text-anchor="middle" font-size="12" font-weight="800" class="ui" fill="#fff">${t}</text>`};
+
+/* ---------- backgrounds ---------- */
+function cafeBg(){const r=R(11);let sp='';const cs=['#b9ad9c','#f0e8db','#a99c8a'];for(let k=0;k<70;k++)sp+=`<circle cx="${f1(r()*400)}" cy="${f1(238+r()*62)}" r="${(r()*1.6+.4).toFixed(2)}" fill="${cs[k%3]}"/>`;
+  return `<defs><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efe3d0"/><stop offset="1" stop-color="#d8c6ad"/></linearGradient><radialGradient id="lampg"><stop offset="0" stop-color="#ffe7b0" stop-opacity=".85"/><stop offset="1" stop-color="#ffe7b0" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#wall)"/>
+<g fill="#c9b293" opacity=".35"><ellipse cx="160" cy="120" rx="9" ry="3"/><ellipse cx="200" cy="170" rx="6" ry="2"/><ellipse cx="140" cy="200" rx="10" ry="3"/><ellipse cx="220" cy="100" rx="5" ry="2"/></g>
+<rect x="22" y="44" width="96" height="120" rx="4" fill="#cfe3ea" stroke="#9c6a3c" stroke-width="5"/><path d="M70,44 V164 M22,104 H118" stroke="#9c6a3c" stroke-width="3"/>
+${[160,230,300].map(x=>`<path d="M${x},0 V38" stroke="#3a2b22" stroke-width="1.5"/><circle cx="${x}" cy="58" r="42" fill="url(#lampg)" class="flick"/><path d="M${x-12},50 Q${x},32 ${x+12},50Z" fill="#2f2620"/>`).join('')}
+<rect x="252" y="88" width="120" height="5" fill="#9c6a3c"/><g fill="#fff"><rect x="262" y="76" width="9" height="12" rx="2"/><rect x="278" y="78" width="8" height="10" rx="2"/><rect x="342" y="76" width="9" height="12" rx="2"/></g><path d="M300,88 q6,-14 14,0" fill="#5d8a4e"/>
+<rect x="236" y="158" width="170" height="80" fill="#b07c48"/><rect x="232" y="152" width="178" height="8" rx="2" fill="#8a5b30"/>
+<g stroke="#9a6a3c" stroke-width="2">${[250,266,282,298,314,330,346,362,378,394].map(x=>`<path d="M${x},162 V236"/>`).join('')}</g>
+<rect x="300" y="122" width="50" height="30" rx="4" fill="#c9ccd1"/><rect x="306" y="128" width="38" height="8" rx="1" fill="#3a3d44"/><circle cx="315" cy="144" r="2" fill="#e05050"/>
+<rect y="236" width="400" height="64" fill="#ddd5c8"/>${sp}`}
+
+function parkBg(seed=5){const r=R(seed);let dots='',lv='';
+  for(let k=0;k<45;k++)dots+=`<circle cx="${f1(r()*400)}" cy="${f1(r()*115)}" r="${f1(r()*1.6+1.6)}" fill="#d8b440" opacity=".8"/>`;
+  for(let k=0;k<8;k++)lv+=`<g class="fall" style="animation-delay:${f1(-r()*7)}s;animation-duration:${f1(6+r()*4)}s"><ellipse cx="${f1(30+r()*360)}" cy="0" rx="3.2" ry="1.8" fill="#e6b93e"/></g>`;
+  return `<defs><linearGradient id="nsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1026"/><stop offset="1" stop-color="#2a3352"/></linearGradient><radialGradient id="lamp"><stop offset="0" stop-color="#fff2c4" stop-opacity=".9"/><stop offset=".35" stop-color="#ffd98a" stop-opacity=".28"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#nsky)"/>${stars(30,120,seed)}
+<rect x="40" y="90" width="9" height="170" fill="#251c16"/><rect x="352" y="100" width="8" height="160" fill="#251c16"/><rect x="120" y="70" width="6" height="170" fill="#251c16"/>
+<g fill="#1d3624"><ellipse cx="30" cy="70" rx="80" ry="60"/><ellipse cx="130" cy="38" rx="72" ry="45"/><ellipse cx="260" cy="28" rx="92" ry="45"/><ellipse cx="380" cy="70" rx="70" ry="60"/></g>
+<g fill="#2b4a2c"><ellipse cx="60" cy="88" rx="50" ry="32"/><ellipse cx="350" cy="96" rx="46" ry="30"/><ellipse cx="200" cy="44" rx="40" ry="22"/></g>${dots}
+<rect x="318" y="118" width="4" height="150" fill="#3b4049"/><ellipse cx="320" cy="116" rx="10" ry="6" fill="#fff4d0"/><circle cx="320" cy="124" r="95" fill="url(#lamp)" class="flick"/>
+<rect y="240" width="400" height="60" fill="#1f2a1d"/><path d="M110,300 L290,300 L236,240 L164,240Z" fill="#6a5747"/>
+<g stroke="#57473a" stroke-width="1"><path d="M156,255 H244 M145,270 H255 M132,286 H268"/></g>
+<g fill="#d0a63a" opacity=".7"><ellipse cx="60" cy="262" rx="3" ry="1.6"/><ellipse cx="300" cy="280" rx="3" ry="1.6"/><ellipse cx="340" cy="258" rx="3" ry="1.6"/><ellipse cx="80" cy="290" rx="3" ry="1.6"/></g>${lv}`}
+
+function house(x,g,w,h,wall,roof,r){const ww=w*.22,wh=h*.32,wy=g-h*.72;
+  const win=(wx,lit)=>`<rect x="${f1(wx)}" y="${f1(wy)}" width="${f1(ww)}" height="${f1(wh)}" fill="${lit?'#ffd98a':'#232236'}" ${lit?`class="flick" style="animation-delay:${f1(r()*3)}s"`:''}/><path d="M${f1(wx+ww/2)},${f1(wy)} v${f1(wh)} M${f1(wx)},${f1(wy+wh/2)} h${f1(ww)}" stroke="#5a4636" stroke-width="1.5"/><rect x="${f1(wx-2)}" y="${f1(wy+wh)}" width="${f1(ww+4)}" height="3" fill="#e9e1d6"/>`;
+  return `<rect x="${f1(x+w*.68)}" y="${f1(g-h-h*.5)}" width="${f1(w*.1)}" height="${f1(h*.4)}" fill="#5a3b2d"/><rect x="${x}" y="${g-h}" width="${w}" height="${h}" fill="${wall}"/><rect x="${x}" y="${g-h}" width="${w}" height="${h}" fill="#0b0e22" opacity=".28"/><path d="M${x-10},${g-h} L${f1(x+w/2)},${f1(g-h-h*.62)} L${x+w+10},${g-h}Z" fill="${roof}"/>${win(x+w*.14,r()<.85)}${win(x+w*.64,r()<.6)}`}
+function fence(x0,x1,g,gx){let o='';for(let x=x0;x<x1;x+=9){if(gx&&x>gx-6&&x<gx+42)continue;o+=`<path d="M${x},${g} V${g-36} l3.5,-4 l3.5,4 V${g}Z" fill="#7a5638"/>`}
+  o+=`<rect x="${x0}" y="${g-28}" width="${x1-x0}" height="4" fill="#5e412a"/><rect x="${x0}" y="${g-13}" width="${x1-x0}" height="4" fill="#5e412a"/>`;
+  if(gx)o+=`<path d="M${gx},${g} V${g-44} Q${gx+20},${g-58} ${gx+40},${g-44} V${g}Z" fill="#4a3424"/><path d="M${gx+20},${g} V${g-52}" stroke="#3a2818" stroke-width="1.5"/><circle cx="${gx+30}" cy="${g-22}" r="2" fill="#d8b440"/><circle cx="${gx+20}" cy="${g-62}" r="3" fill="#ffe7a8"/>`;return o}
+function houseBg(mode='gate'){const r=R(mode==='gate'?17:23);
+  const sky=`<defs><linearGradient id="hsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1129"/><stop offset="1" stop-color="#2f3355"/></linearGradient><radialGradient id="lamp2"><stop offset="0" stop-color="#fff2c4" stop-opacity=".85"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#hsky)"/>${stars(28,110,mode==='gate'?8:14)}<circle cx="60" cy="44" r="15" fill="#fff6dc"/><circle cx="66" cy="39" r="13" fill="#141a36"/>`;
+  const ground=`<rect y="238" width="400" height="62" fill="#22202e"/><rect y="238" width="400" height="5" fill="#3a3748"/>`;
+  const lamp=x=>`<rect x="${x-2}" y="120" width="4" height="120" fill="#3b4049"/><ellipse cx="${x}" cy="118" rx="9" ry="5" fill="#fff4d0"/><circle cx="${x}" cy="126" r="80" fill="url(#lamp2)" opacity=".7" class="flick"/>`;
+  if(mode==='street')return sky+`<g fill="#1d3624"><ellipse cx="200" cy="120" rx="46" ry="40"/></g><rect x="196" y="140" width="7" height="100" fill="#251c16"/>
+${house(16,238,118,64,'#e4d3bd','#7a3b33',r)}${house(268,238,122,72,'#cdd8de','#3f4f6b',r)}${fence(0,400,240,0)}${lamp(340)}${ground}`;
+  return sky+`<g fill="#1d3624"><ellipse cx="40" cy="140" rx="62" ry="52"/><ellipse cx="110" cy="176" rx="38" ry="28"/></g><rect x="36" y="160" width="8" height="80" fill="#251c16"/>
+${house(196,238,184,94,'#efe1cc','#8a3f35',r)}<rect x="250" y="196" width="16" height="42" fill="#5a3b2d" opacity=".0"/>${fence(0,400,240,300)}${lamp(120)}${ground}`}
+
+function kitchenBg(){let t='';for(let x=0;x<400;x+=20)for(let y=146;y<196;y+=14)t+=`<rect x="${x+1}" y="${y+1}" width="18" height="12" fill="#e8f0f2"/>`;
+  return `<defs><radialGradient id="kl"><stop offset="0" stop-color="#ffe2a6" stop-opacity=".7"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="300" fill="#f3e4d6"/>
+<rect x="0" y="146" width="400" height="50" fill="#cfdadd"/>${t}
+<g fill="#e7d3bb" stroke="#cdb497" stroke-width="2"><rect x="150" y="18" width="78" height="86" rx="3"/><rect x="232" y="18" width="78" height="86" rx="3"/><rect x="314" y="18" width="78" height="86" rx="3"/></g>
+<g fill="#b48a5e"><rect x="216" y="56" width="4" height="16" rx="2"/><rect x="242" y="56" width="4" height="16" rx="2"/><rect x="380" y="56" width="4" height="16" rx="2"/></g>
+<rect x="22" y="30" width="100" height="96" rx="4" fill="#1c2346" stroke="#fff" stroke-width="5"/><circle cx="92" cy="58" r="11" fill="#fff6dc"/><circle cx="97" cy="54" r="9.5" fill="#1c2346"/><path d="M72,30 V126 M22,78 H122" stroke="#fff" stroke-width="3"/>
+<circle cx="72" cy="-10" r="0"/>
+<path d="M270,0 V34" stroke="#3a2b22" stroke-width="1.5"/><circle cx="270" cy="56" r="70" fill="url(#kl)" class="flick"/><path d="M258,46 Q270,28 282,46Z" fill="#c4473f"/>
+<rect x="0" y="196" width="400" height="8" fill="#ece5dc"/><rect x="0" y="204" width="400" height="40" fill="#b9885a"/>
+<g stroke="#9c6f45" stroke-width="2">${[60,140,220,300,380].map(x=>`<path d="M${x},206 V242"/>`).join('')}</g>
+<rect x="300" y="168" width="70" height="28" rx="3" fill="#2d2f36"/><circle cx="318" cy="178" r="6" fill="#47494f"/><circle cx="352" cy="178" r="6" fill="#47494f"/>
+<rect y="244" width="400" height="56" fill="#d9c3a6"/><g stroke="#c8ae8e" stroke-width="1.5"><path d="M0,262 H400 M0,282 H400 M90,244 V262 M210,262 V282 M320,244 V262 M150,282 V300"/></g>`}
+function pizza(x,y){return `<g transform="translate(${f1(x)} ${f1(y)})"><path class="steam" d="M-8,-12 q-3,-5 0,-10 q3,-5 0,-10 M6,-12 q-3,-5 0,-10 q3,-5 0,-10" stroke="#fff" stroke-opacity=".9" fill="none" stroke-width="1.5"/><rect x="-4" y="4" width="8" height="16" rx="3" fill="#a8743f"/><ellipse cx="0" cy="0" rx="26" ry="9" fill="#c08b52"/><ellipse cx="0" cy="-1.5" rx="22" ry="7.5" fill="#e9b665"/><ellipse cx="0" cy="-2" rx="18" ry="6" fill="#c8402e"/><g fill="#fff3cf"><ellipse cx="-8" cy="-3" rx="5" ry="2"/><ellipse cx="6" cy="-1" rx="6" ry="2.2"/><ellipse cx="0" cy="-5" rx="4" ry="1.5"/></g><g fill="#e8909a"><ellipse cx="-2" cy="-1" rx="3.4" ry="1.5"/><ellipse cx="11" cy="-4" rx="3" ry="1.3"/><ellipse cx="-12" cy="0" rx="3" ry="1.3"/></g><g fill="#3f8a3c"><ellipse cx="3" cy="-4.5" rx="2" ry=".9"/><ellipse cx="-6" cy="1" rx="2" ry=".9"/></g></g>`}
+function pie(x,y){return `<g transform="translate(${f1(x)} ${f1(y)})"><path class="steam" d="M-6,-14 q-3,-5 0,-10 q3,-5 0,-10 M7,-14 q-3,-5 0,-10 q3,-5 0,-10" stroke="#fff" stroke-opacity=".9" fill="none" stroke-width="1.5"/><path d="M-26,-2 L26,-2 L22,7 L-22,7Z" fill="#e9e3dc"/><ellipse cx="0" cy="-3" rx="25" ry="8" fill="#c98a3e"/><ellipse cx="0" cy="-4" rx="21" ry="6.2" fill="#e5ad5c"/><g stroke="#f6d08a" stroke-width="2.2"><path d="M-14,-8 L-8,1 M-5,-10 L2,1 M5,-10 L11,0 M-15,-1 L15,-7 M-12,2 L18,-3"/></g><g fill="#d39645">${[-22,-15,-7,1,9,17,22].map(a=>`<circle cx="${a}" cy="${a>-20&&a<20?2.6:-2}" r="2.2"/>`).join('')}</g></g>`}
+const apple=(x,y,c='#d6403a')=>`<g transform="translate(${x} ${y})"><circle r="6" fill="${c}"/><path d="M0,-6 v-3" stroke="#5a3b2d" stroke-width="1.4"/><ellipse cx="3" cy="-8" rx="3" ry="1.4" fill="#4f9a45"/><circle cx="-2" cy="-2" r="1.4" fill="#fff" opacity=".5"/></g>`;
+
+/* ---------- scenes ---------- */
+const scenes=[
+// 0 title
+()=>`<defs><radialGradient id="g0" cx=".5" cy=".38" r=".75"><stop offset="0" stop-color="#3b2548"/><stop offset="1" stop-color="#120d1b"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#g0)"/>${stars(50,200,4)}
+<g class="pulse">${heart(200,96,3.4,'#ff8fa8')}</g>${rising(200,140,5,3,0)}
+<rect y="250" width="400" height="50" fill="#1b1426"/>
+${guy(168,262)}${girl(232,262,{outfit:'leather',blush:true})}`,
+
+// 1 meet
+()=>{const [tx,ty]=hu(138,272,1.38,14);return `${cafeBg()}
+${guy(138,272,{outfit:'apron',arm:'up'})}${tray(tx+2,ty+4)}
+${girl(266,272,{outfit:'apron',hair:'pony',blush:true})}
+${bubble(132,120,'Привет! Я Арлан',.5,'l')}${bubble(272,120,'А я Настя',2,'l')}
+${sparkle(205,150,2.8)}${sparkle(220,135,3.1,'#ff8fa8')}`},
+
+// 2 colleagues
+()=>{const [gx,gy]=hu(110,272,1.38,14),[nx,ny]=hu(292,272,1.3,13);return `${cafeBg()}
+<g class="drift-r">${guy(110,272,{outfit:'apron',arm:'up'})}${tray(gx+2,gy+4)}${bubble(108,118,'стол 4: латте',1,'none')}</g>
+<g class="drift-l">${girl(292,272,{outfit:'apron',hair:'pony',arm:'up'})}${tray(nx+2,ny+4)}${bubble(292,118,'стол 2: раф',2,'none')}</g>`},
+
+// 3 video call
+()=>{const s1=1.3,[px,py]=hu(96,274,s1,13),[qx,qy]=hu(296,272,1.38,14);return `<defs><clipPath id="cl"><rect width="200" height="300"/></clipPath><clipPath id="cr"><rect x="200" width="200" height="300"/></clipPath>
+<linearGradient id="gsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fc6ef"/><stop offset="1" stop-color="#e3f4fb"/></linearGradient></defs>
+<g clip-path="url(#cr)">${cafeBg()}${guy(296,272,{outfit:'apron',arm:'up'})}${phone(qx,qy-2)}${label(388,26,'Алматы · смена','end')}</g>
+<g clip-path="url(#cl)"><rect width="200" height="300" fill="url(#gsky)"/><circle cx="150" cy="50" r="18" fill="#fff3b8"/>
+<path d="M-10,215 L40,130 L70,160 L110,92 L150,165 L180,125 L215,175 L215,240 L-10,240Z" fill="#7f93aa"/>
+<path d="M110,92 L98,112 L106,108 L111,116 L117,108 L124,111Z M40,130 L32,144 L39,141 L44,146 L48,140Z" fill="#fff"/>
+<path d="M-10,230 Q60,200 120,222 Q170,238 215,214 L215,300 L-10,300Z" fill="#76ad62"/><path d="M-10,262 Q90,246 215,262 L215,300 L-10,300Z" fill="#5f9750"/>
+${girl(96,274,{outfit:'hoodie',arm:'up',mood:'laugh'})}${phone(px,py-2)}${label(12,26,'Грузия')}</g>
+<rect x="198" width="4" height="300" fill="#fff"/>${rising(200,200,5,12,.3)}`},
+
+// 4 cinema
+()=>`<rect width="400" height="300" fill="#120d18"/>
+<path d="M50,18 L350,18 L330,98 L70,98Z" fill="#cfe2ff" class="flick2"/><rect width="400" height="300" fill="#9fc4ff" opacity=".07" class="flick2"/>
+<g fill="#3e1520">${[30,90,150,210,270,330,390].map(x=>`<rect x="${x-24}" y="124" width="48" height="40" rx="10"/>`).join('')}</g>
+<g fill="#6b2433"><rect x="118" y="146" width="66" height="160" rx="14"/><rect x="200" y="146" width="66" height="160" rx="14"/><rect x="-20" y="150" width="66" height="160" rx="14"/><rect x="354" y="150" width="66" height="160" rx="14"/></g>
+${guy(152,300,{outfit:'fleece'})}${girl(234,300,{outfit:'leather',blush:true})}
+<rect x="0" y="262" width="400" height="38" fill="#4d1824"/>${popcorn(193,270)}
+<g fill="#cfe2ff" opacity=".12"><path d="M135,140 L170,140 L170,300 L135,300Z"/></g>`,
+
+// 5 bench, her district
+()=>`${houseBg('street')}${benchBack(200,278,170)}
+${guy(170,278)}${girl(232,278,{outfit:'leather',hair:'pony',blush:true})}
+${benchFront(200,278,170)}${bubble(200,128,'ещё 5 минуточек?',1.4,'r')}`,
+
+// 6 flowers
+()=>`${parkBg(6)}${guy(158,280)}${girl(246,280,{outfit:'leather',mood:'laugh',blush:true})}${bouquet(246,236)}
+${sparkle(206,160,.4)}${sparkle(296,150,.8,'#ff8fa8')}${sparkle(290,200,1.2)}${sparkle(205,205,1.6,'#ff8fa8')}`,
+
+// 7 dawn
+()=>{const [a,b]=hu(168,278,1.38,14),[c,d]=hu(232,278,1.3,13);return `<defs><linearGradient id="dsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2d5c"/><stop offset=".55" stop-color="#ea8a7a"/><stop offset="1" stop-color="#ffd69c"/></linearGradient><radialGradient id="sung"><stop offset="0" stop-color="#fff1c2" stop-opacity=".9"/><stop offset="1" stop-color="#ffcf86" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#dsky)"/>
+<g class="sunup"><circle cx="200" cy="190" r="80" fill="url(#sung)"/><circle cx="200" cy="190" r="26" fill="#fff0c4"/></g>
+<path d="M0,210 L60,150 L100,175 L160,118 L210,165 L262,128 L320,175 L362,140 L400,170 L400,300 L0,300Z" fill="#8a5a78"/>
+<path d="M160,118 L150,130 L156,128 L160,134 L165,128 L171,131Z M262,128 L253,139 L259,137 L263,142 L268,137 L273,140Z" fill="#ffe9e4" opacity=".85"/>
+<path d="M0,238 Q100,214 200,232 Q300,250 400,226 V300 H0Z" fill="#3a2740"/>
+<g fill="#ffd98a">${[30,58,92,300,330,366].map((x,k)=>`<circle cx="${x}" cy="${236-(k%3)*4}" r="1.3"/>`).join('')}</g>
+<rect width="400" height="300" fill="#120e24" class="fadeout"/>
+${benchBack(200,278,170)}${guy(168,278,{arm:'up'})}${cup(a,b+2)}${girl(232,278,{outfit:'leather',arm:'up'})}${cup(c,d+2)}${benchFront(200,278,170)}`},
+
+// 8 confession
+()=>`${houseBg('gate')}${benchBack(200,278,170)}
+${guy(166,278,{blush:true})}${girl(232,278,{outfit:'leather',hair:'pony',blush:true,mood:'o'})}${benchFront(200,278,170)}
+${bubble(150,122,'Ты мне очень нравишься',.6,'l')}${rising(205,170,6,20,2.4)}`,
+
+// 9 proposal
+()=>`${cafeBg()}${guy(146,272,{outfit:'black',blush:true})}${girl(258,272,{outfit:'hoodie',mood:'laugh',blush:true})}
+<ellipse cx="202" cy="236" rx="78" ry="11" fill="#8a5b30"/><rect x="194" y="240" width="16" height="60" fill="#5e3d22"/><ellipse cx="202" cy="233" rx="78" ry="11" fill="#b07c48"/>
+<g><rect x="168" y="218" width="12" height="12" rx="2" fill="#fff"/><rect x="224" y="218" width="12" height="12" rx="2" fill="#fff"/><rect x="170" y="220" width="8" height="4" fill="#b98a62"/><rect x="226" y="220" width="8" height="4" fill="#b98a62"/></g>
+${bubble(138,116,'Будешь моей девушкой?',.5,'l')}${bubble(278,116,'Да!',2.6,'l')}
+<g class="popbig" style="animation-delay:3.1s">${heart(206,178,2.6,'#ff5f7e')}</g>${rising(206,170,5,30,3.4)}`,
+
+// 10 shy walks
+()=>`${parkBg(10)}<g class="drift-r">${guy(172,280,{blush:true})}${girl(226,280,{outfit:'leather',blush:true})}
+<g class="pop" style="animation-delay:1.6s">${heart(199,236,1.1,'#ff5f7e')}</g>
+<g class="pop" style="animation-delay:2.4s"><path d="M150,150 l4,-6 M157,152 l4,-6 M253,152 l4,-6 M260,154 l4,-6" stroke="#ff8fa8" stroke-width="2" stroke-linecap="round"/></g></g>`,
+
+// pizza for her
+()=>{const [hx,hy]=hu(150,282,1.38,14);return `${kitchenBg()}
+${guy(150,282,{outfit:'black',apronC:'#c4473f',arm:'up',blush:true})}${pizza(hx+4,hy-6)}
+${girl(262,282,{outfit:'hoodie',mood:'laugh',blush:true})}
+${bubble(268,118,'М-м, как пахнет!',1.4,'l')}${rising(190,150,5,51,2.2)}${sparkle(120,140,.8)}`},
+
+// apple pie for him
+()=>{const [hx,hy]=hu(150,282,1.3,13);return `${kitchenBg()}${apple(44,190)}${apple(58,192,'#8cc04b')}${apple(72,190)}
+${girl(150,282,{outfit:'hoodie',apronC:'#f2a7b8',arm:'up',blush:true})}${pie(hx+4,hy-6)}
+${guy(262,282,{outfit:'black',mood:'laugh',blush:true})}
+${bubble(256,116,'Самый вкусный пирог!',1.4,'l')}${rising(190,150,5,52,2.2)}${sparkle(110,140,.8,'#ff8fa8')}`},
+
+// 11 Taraz
+()=>`<defs><linearGradient id="tsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05070f"/><stop offset="1" stop-color="#1a1e2c"/></linearGradient><filter id="glow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><radialGradient id="tl"><stop offset="0" stop-color="#fff6d6" stop-opacity=".8"/><stop offset="1" stop-color="#fff6d6" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#tsky)"/>${stars(22,110,12)}
+<g fill="#16261a"><ellipse cx="350" cy="140" rx="70" ry="60"/><ellipse cx="40" cy="150" rx="60" ry="50"/></g>
+<rect x="96" y="40" width="5" height="180" fill="#3b4049"/><circle cx="98" cy="40" r="70" fill="url(#tl)" class="flick"/>
+<g fill="#cfe25a" opacity=".85">${[70,90,110,120,134,80,104].map((x,k)=>`<ellipse cx="${x}" cy="${70+k*9}" rx="9" ry="4"/>`).join('')}</g>
+<rect y="186" width="400" height="12" fill="#2b4a2a"/>
+<g filter="url(#glow)" class="glowtext"><text x="250" y="182" text-anchor="middle" font-size="22" font-weight="800" class="ui" fill="#fff">I <tspan fill="#ff3b4e">♥</tspan> TARAZ</text></g>
+<rect y="198" width="400" height="30" fill="#2a2a32"/><g stroke="#9a9aa4" stroke-width="2" stroke-dasharray="14 12"><path d="M0,213 H400"/></g>
+<g class="drive"><rect x="0" y="200" width="56" height="14" rx="5" fill="#8f97a6"/><path d="M10,200 L18,192 L40,192 L48,200Z" fill="#6f7686"/><circle cx="12" cy="215" r="4" fill="#111"/><circle cx="44" cy="215" r="4" fill="#111"/><circle cx="56" cy="206" r="3" fill="#ffe9a8"/></g>
+<rect y="228" width="400" height="72" fill="#3c7a33"/><rect y="228" width="400" height="72" fill="#000" opacity=".2"/>
+${guy(164,284,{bag:true})}${girl(232,284,{outfit:'leather',hair:'pony',mood:'laugh'})}`,
+
+// 12 now
+()=>`<defs><linearGradient id="rw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd4ca"/><stop offset="1" stop-color="#c9beb2"/></linearGradient><radialGradient id="cg"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#rw)"/>
+<rect x="262" y="70" width="64" height="190" fill="#f2f2f0"/><rect x="270" y="78" width="48" height="182" fill="#c5d3e6"/>
+<rect x="334" y="70" width="70" height="190" fill="#f2f2f0"/><rect x="342" y="78" width="62" height="182" fill="#2f3140"/><circle cx="380" cy="230" r="3" fill="#ff4f6a" opacity=".7" class="flick"/>
+<rect x="232" y="150" width="14" height="22" rx="2" fill="#ece8e2"/>
+${girl(160,282,{outfit:'black',mood:'laugh'})}${guy(238,282,{outfit:'black',mood:'laugh'})}
+<ellipse cx="200" cy="252" rx="140" ry="18" fill="#f1ece6"/><rect x="60" y="252" width="280" height="50" fill="#e6ded4"/>
+<circle cx="200" cy="214" r="46" fill="url(#cg)" class="flick"/>
+<ellipse cx="200" cy="250" rx="42" ry="9" fill="#fff" stroke="#d8d0c6"/><ellipse cx="200" cy="246" rx="31" ry="7.5" fill="#f2c35a"/>
+<g stroke="#e19a32" stroke-width="1.6" fill="none"><path d="M176,246 q6,-5 12,0 t12,0 t12,0"/><path d="M182,243 q5,-4 10,0 t10,0 t10,0"/></g>
+<text x="200" y="240" text-anchor="middle" font-size="30" font-weight="800" class="ui" fill="#fff" stroke="#d8b25a" stroke-width="1.4">2</text>
+<path d="M200,212 v-4" stroke="#333" stroke-width="1"/><g class="flame"><ellipse cx="200" cy="203" rx="3.4" ry="6.5" fill="#ffad33"/><ellipse cx="200" cy="205" rx="1.6" ry="3.2" fill="#fff3b0"/></g>
+${rising(200,170,4,40,1.6)}`
+];
+/* real order: pasta "2" before Taraz, Taraz before cooking for each other */
+{const s=scenes.slice();scenes.length=0;[0,1,2,3,4,5,6,7,8,9,10,14,13,11,12].forEach(k=>scenes.push(s[k]));}
+// finale
+scenes.push(()=>`<defs><radialGradient id="gf" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="#4a2a52"/><stop offset="1" stop-color="#120d1b"/></radialGradient></defs>
+<rect width="400" height="300" fill="url(#gf)"/>${stars(60,210,31)}
+<circle cx="330" cy="54" r="18" fill="#fff6dc"/><circle cx="337" cy="48" r="16" fill="#2e1d3a"/>
+<path d="M0,250 Q120,226 200,240 Q300,256 400,232 V300 H0Z" fill="#1b1426"/>
+<g class="pulse">${heart(200,112,3.6,'#ff8fa8')}</g>${rising(200,150,6,33,.8)}
+${guy(172,262,{blush:true})}${girl(228,262,{outfit:'leather',blush:true})}
+<g class="pop" style="animation-delay:.6s">${heart(200,230,1,'#ff5f7e')}</g>
+<g class="pop" style="animation-delay:2s"><text x="200" y="40" text-anchor="middle" font-size="28" class="hand" fill="#fff4ec">Продолжение следует…</text></g>`);
+
+const caps=[
+ ['', 'Маленький мультик о нас с тобой. Нажми «Смотреть».'],
+ ['Глава 1 · Знакомство','Всё началось с обычной смены. Тогда я ещё не знал, что девушка в соседнем фартуке станет самым родным человеком.'],
+ ['Глава 2 · Просто коллеги','Мы работали рядом, носили заказы и почти не замечали друг друга. Наверное, судьба просто ждала своего часа.'],
+ ['Глава 3 · Июль','Летом ты была в Грузии, а я на смене. Но с каждым видеозвонком расстояние между нами становилось всё меньше.'],
+ ['Глава 4 · Первое свидание','Ты вернулась, и мы пошли в кино. Я, кажется, смотрел больше на тебя, чем на экран.'],
+ ['Глава 5 · Твоя улица','Потом были долгие прогулки и наша лавочка у твоего дома. Рядом с тобой время всегда летело слишком быстро.'],
+ ['Глава 6 · Цветы','Я дарил тебе цветы, чтобы снова увидеть твою улыбку. Она красивее любого букета.'],
+ ['Глава 7 · Рассвет','Мы сидели в кофейнях, говорили обо всём на свете и встречали рассвет. Самые тёплые утра — те, что с тобой.'],
+ ['Глава 8 · Признание','А однажды у твоей калитки, на той самой лавочке, я наконец сказал, что ты мне очень нравишься.'],
+ ['Глава 9 · Через две недели','Через две недели, в кофейне, я спросил, будешь ли ты моей девушкой. Твоё «да» я буду помнить всегда.'],
+ ['Глава 10 · Вместе','Мы гуляли, держась за руки, немного стеснялись и были по-настоящему счастливы.'],
+ ['Глава 11 · Две недели','Наши первые две недели вместе мы отметили пастой со свечкой «2» вместо торта. Мы смеялись до слёз, и это было идеально.'],
+ ['Глава 12 · Тараз','Потом мы вместе поехали в Тараз. С тобой любая дорога становится приключением.'],
+ ['Глава 13 · Пицца для тебя','Я готовил для тебя пиццу и очень старался. Ведь это для самой любимой.'],
+ ['Глава 14 · Пирог для меня','А ты испекла мне пирог с яблоками. Самый вкусный, потому что сделан твоими руками.'],
+ ['Сейчас','Спасибо тебе за каждый день рядом. Я люблю тебя, и это только начало.']
+];
+
+/* ---------- player ---------- */
+const sv=document.getElementById('sv'),bar=document.getElementById('bar'),startB=document.getElementById('start'),
+  eb=document.getElementById('eb'),ct=document.getElementById('ct'),dots=document.getElementById('dots'),
+  playB=document.getElementById('play'),musB=document.getElementById('mus');
+const DUR=7000,LAST=scenes.length-1;let i=0,playing=false,t=null;
+scenes.forEach((_,k)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.setAttribute('aria-label','Сцена '+(k+1));b.onclick=()=>go(k);dots.appendChild(b)});
+function setPlay(p){playing=p;playB.textContent=p?'❚❚ Пауза':'▶ Играть'}
+function go(n){
+  clearTimeout(t);i=Math.max(0,Math.min(LAST,n));
+  sv.innerHTML=scenes[i]();
+  eb.textContent=caps[i][0];ct.textContent=caps[i][1];ct.classList.remove('in');void ct.offsetWidth;ct.classList.add('in');
+  [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===i));
+  startB.hidden=i!==0;startB.textContent='▶ Смотреть';
+  bar.classList.remove('run');void bar.offsetWidth;bar.style.animationDuration=DUR+'ms';
+  if(playing){bar.classList.add('run');
+    t=setTimeout(()=>{if(i<LAST)go(i+1);else{setPlay(false);startB.textContent='↺ Посмотреть ещё раз';startB.hidden=false}},DUR)}
+}
+startB.addEventListener('click',e=>{e.stopPropagation();setPlay(true);if(!musicOn)toggleMusic();go(1)});
+document.getElementById('stage').addEventListener('click',()=>{if(i<LAST)go(i+1)});
+document.getElementById('stage').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();if(i<LAST)go(i+1)}});
+document.getElementById('prev').onclick=()=>go(i-1);
+document.getElementById('next').onclick=()=>go(i+1);
+playB.onclick=()=>{setPlay(!playing);go(i===0&&playing?1:i)};
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1)});
+
+/* ---------- music box ---------- */
+let actx=null,master=null,musicOn=false,timer=null,nextT=0,step=0;
+const prog=[[261.63,329.63,392.0],[196.0,246.94,293.66],[220.0,261.63,329.63],[174.61,220.0,261.63]];
+const pat=[0,1,2,1,0,2,1,2];
+const mel=[523.25,0,493.88,0,440,0,392,0, 392,0,440,0,493.88,0,0,0, 523.25,0,587.33,0,523.25,0,440,0, 440,0,392,0,349.23,0,392,0];
+function note(f,at,dur,vol,type='triangle'){const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;
+  g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(vol,at+.015);g.gain.exponentialRampToValueAtTime(.0001,at+dur);o.connect(g).connect(master);o.start(at);o.stop(at+dur+.05)}
+function tick(){while(nextT<actx.currentTime+.35){const bar=Math.floor(step/8)%4,k=step%8,ch=prog[bar];
+  note(ch[pat[k]]*(k===4?2:1),nextT,.9,.05);if(k===0)note(ch[0]/2,nextT,2.3,.05,'sine');
+  const m=mel[step%32];if(m)note(m,nextT,1.1,.035,'sine');step++;nextT+=.3}}
+function toggleMusic(){
+  try{if(!actx){actx=new (window.AudioContext||window.webkitAudioContext)();master=actx.createGain();master.gain.value=.9;const lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;master.disconnect();master.connect(lp).connect(actx.destination)}}catch(e){return}
+  musicOn=!musicOn;
+  if(musicOn){actx.resume();nextT=actx.currentTime+.05;timer=setInterval(tick,60);musB.textContent='♪ Музыка: вкл'}
+  else{clearInterval(timer);musB.textContent='♪ Музыка: выкл'}
+}
+musB.onclick=toggleMusic;
+setPlay(false);go(0);
+</script>
+
+</body>
+</html>

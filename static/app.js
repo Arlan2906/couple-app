@@ -252,10 +252,12 @@ async function renderUs() {
     : `<div class="lbl" style="font-size:17px">С какого дня вы вместе?</div><button class="small" id="setDate">Указать дату</button>`;
   view.innerHTML = `
     <div class="hero">${hero}</div>
+    <button class="story-btn" id="story"><span class="sb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9.5 4.5 2.5-4.5 2.5z" fill="currentColor"/></svg></span><span class="grow"><b>Наш мультик</b><small>История о нас в 16 сценах</small></span><span class="sb-go">›</span></button>
     <h2>Наши моменты <small>${items.length || ""}</small></h2>
     ${items.length ? `<div class="timeline">${items.map(momentCard).join("")}</div>`
       : `<div class="empty">Добавьте первый момент — первое свидание, смешной случай, любое «помнишь?»</div>`}`;
   startTicker();
+  $("#story").onclick = () => { haptic(); location.href = "/static/story.html"; };
   $("#setDate").onclick = () => openSheet(
     `<h3>Начало истории</h3>
      <label>Дата</label><input type="date" name="d" value="${c.started_on || ""}" max="${todayIso()}" required>
