@@ -298,3 +298,89 @@ textarea { resize: vertical; min-height: 70px; }
 .items-list .item-row { flex-wrap: wrap; row-gap: 2px; }
 .items-list .item-row.locked .muted { flex-basis: 100%; text-align: left; font-size: 12.5px; }
 .resident { bottom: 4%; }
+
+/* ---------- рисованная собачка ---------- */
+.pet-emoji.dogwrap { animation: none; margin-bottom: 6px; }
+.st-happy .pet-emoji.dogwrap { animation: dogHop 1.6s ease-in-out infinite; }
+.st-hungry .pet-emoji.dogwrap, .st-sad .pet-emoji.dogwrap { filter: none; }
+.dog { display: block; overflow: visible; }
+.sg-baby .dog { width: 110px; }
+.sg-kid .dog { width: 145px; }
+.sg-adult .dog, .sg-legend .dog { width: 175px; }
+.dog * { transform-box: view-box; }
+
+.dog .body { transform-origin: 100px 205px; animation: dogBreathe 2.6s ease-in-out infinite; }
+.dog .head { transform-origin: 100px 112px; animation: dogHead 3.4s ease-in-out infinite; }
+.dog .tail { transform-origin: 136px 168px; animation: dogWag .8s ease-in-out infinite; }
+.dog .ear-l { transform-origin: 62px 50px; animation: dogEarL 3.4s ease-in-out infinite; }
+.dog .ear-r { transform-origin: 138px 50px; animation: dogEarR 3.4s ease-in-out infinite; }
+.dog .eyes-open { transform-origin: 100px 68px; animation: dogBlink 4.6s infinite; }
+.dog .tag { transform-origin: 100px 117px; animation: dogTag 1.6s ease-in-out infinite; }
+.dog .eyes-happy, .dog .brows, .dog .mouth-sad, .dog .mouth-open, .dog .tongue { display: none; }
+.dog .bowl { opacity: 0; transition: opacity .25s; }
+.sg-baby .dog .head { transform-origin: 100px 112px; scale: 1.08; }
+
+/* счастлив: хвост мотается, язык наружу, уши торчком */
+.st-happy .dog .tail { animation-duration: .32s; }
+.st-happy .dog .tongue { display: inline; transform-origin: 100px 97px; animation: dogPant .35s ease-in-out infinite; }
+.st-happy .dog .ear-l { animation: none; transform: rotate(8deg); }
+.st-happy .dog .ear-r { animation: none; transform: rotate(-8deg); }
+
+/* голоден / грустит: уши прижаты, хвост повис, бровки домиком */
+.st-hungry .dog .tail, .st-sad .dog .tail { animation: none; transform: rotate(62deg); }
+.st-hungry .dog .head, .st-sad .dog .head { animation: dogSadHead 4s ease-in-out infinite; }
+.st-hungry .dog .ear-l, .st-sad .dog .ear-l { animation: none; transform: rotate(-16deg); }
+.st-hungry .dog .ear-r, .st-sad .dog .ear-r { animation: none; transform: rotate(16deg); }
+.st-hungry .dog .brows, .st-sad .dog .brows { display: inline; }
+.st-hungry .dog .mouth-smile, .st-sad .dog .mouth-smile { display: none; }
+.st-hungry .dog .mouth-sad, .st-sad .dog .mouth-sad { display: inline; }
+.st-hungry .dog .blush, .st-sad .dog .blush { opacity: .15; }
+
+/* скучает: голова набок, хвост еле-еле */
+.st-bored .dog .head { animation: none; transform: rotate(-11deg); }
+.st-bored .dog .tail { animation-duration: 2.4s; }
+
+/* кормят: появляется миска, голова вниз, жуёт */
+.act-feed .dog .bowl { opacity: 1; }
+.act-feed .dog .head { animation: dogChew .32s ease-in-out infinite; }
+.act-feed .dog .tail { animation: dogWag .3s ease-in-out infinite; }
+.act-feed .dog .mouth-sad, .act-feed .dog .brows { display: none; }
+.act-feed .dog .mouth-smile { display: inline; }
+
+/* гладят: жмурится, язык, хвост вовсю */
+.act-pet .dog .eyes-open { display: none; }
+.act-pet .dog .eyes-happy { display: inline; }
+.act-pet .dog .tongue { display: inline; }
+.act-pet .dog .brows, .act-pet .dog .mouth-sad { display: none; }
+.act-pet .dog .mouth-smile { display: inline; }
+.act-pet .dog .head { animation: dogNuzzle .6s ease-in-out infinite; }
+.act-pet .dog .tail { animation: dogWag .28s ease-in-out infinite; }
+.act-pet .dog .ear-l { animation: none; transform: rotate(-10deg); }
+.act-pet .dog .ear-r { animation: none; transform: rotate(10deg); }
+
+/* нажали: гавкает */
+.bark .dog .mouth-open { display: inline; }
+.bark .dog .mouth-smile, .bark .dog .mouth-sad, .bark .dog .tongue { display: none; }
+.bark .dog .head { animation: dogBark .35s ease-out 2; }
+.bark .dog .ear-l { animation: none; transform: rotate(14deg); }
+.bark .dog .ear-r { animation: none; transform: rotate(-14deg); }
+
+/* в доме — маленькая версия */
+.resident.dogwrap { animation: none; }
+.resident .dog { width: 68px; }
+
+@keyframes dogBreathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
+@keyframes dogHead { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(3deg) translateY(1px); } }
+@keyframes dogSadHead { 0%, 100% { transform: translateY(6px) rotate(-3deg); } 50% { transform: translateY(8px) rotate(2deg); } }
+@keyframes dogWag { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(20deg); } }
+@keyframes dogEarL { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(5deg); } }
+@keyframes dogEarR { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg); } }
+@keyframes dogBlink { 0%, 44%, 50%, 100% { transform: scaleY(1); } 47% { transform: scaleY(.1); } }
+@keyframes dogPant { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.18); } }
+@keyframes dogTag { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes dogChew { 0%, 100% { transform: translate(14px, 22px) rotate(16deg); } 50% { transform: translate(14px, 25px) rotate(14deg); } }
+@keyframes dogNuzzle { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(-3deg) translateY(-2px); } }
+@keyframes dogBark { 0% { transform: rotate(0); } 40% { transform: translateY(-8px) rotate(-6deg); } 100% { transform: rotate(0); } }
+@keyframes dogHop { 0%, 60%, 100% { transform: translateY(0); } 75% { transform: translateY(-14px); } 88% { transform: translateY(0) scale(1.03, .97); } }
+.bark-bubble { position: absolute; top: 6px; left: calc(50% + 46px); background: #fff; color: var(--text); font-weight: 800; font-size: 15px; padding: 6px 12px; border-radius: 14px 14px 14px 4px; box-shadow: var(--shadow); z-index: 3; animation: barkPop .9s ease-out forwards; }
+@keyframes barkPop { 0% { transform: scale(.4); opacity: 0; } 20% { transform: scale(1.1); opacity: 1; } 75% { transform: scale(1); opacity: 1; } 100% { transform: translateY(-10px); opacity: 0; } }

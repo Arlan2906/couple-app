@@ -495,7 +495,7 @@ function drawPet(p) {
       <div class="pet-top"><button class="pet-name" id="rename">${esc(p.name)} ✎</button><span class="pet-lvl">${egg ? "яйцо" : `ур. ${p.level} · ${STAGE_NAMES[p.stage]}`}</span></div>
       <div class="pet-stage" id="petTap">
         ${p.stage === "legend" ? `<div class="crown">👑</div>` : ""}
-        <div class="pet-emoji">${egg ? "🥚" : p.emoji}</div>
+        <div class="pet-emoji ${!egg && p.kind === "dog" ? "dogwrap" : ""}">${egg ? "🥚" : petFigure(p)}</div>
         <div class="shadow"></div>
       </div>
       <div class="pet-status">${esc(p.status_text)}</div>
@@ -526,11 +526,22 @@ function drawPet(p) {
     try {
       const d = await api(`/api/pet/${b.dataset.act}`, { method: "POST" });
       success(); hearts(b.dataset.act === "feed" ? "+22 сытость" : "+12 радость", 1);
-      setTimeout(() => refreshHouse(d.pet), 700);
+      const fig = $(".pet-emoji");
+      fig?.classList.add(`act-${b.dataset.act}`);   // собачка ест из миски / жмурится от удовольствия
+      setTimeout(() => refreshHouse(d.pet), fig?.classList.contains("dogwrap") ? 2200 : 700);
     } catch { b.disabled = false; }
   }));
   $("#petTap").onclick = () => {
-    haptic("soft"); const e = $(".pet-emoji"); e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing");
+    haptic("soft"); const e = $(".pet-emoji");
+    if (e.classList.contains("dogwrap")) {
+      if (e.classList.contains("bark")) return;
+      e.classList.add("bark");
+      const bub = document.createElement("span"); bub.className = "bark-bubble"; bub.textContent = "Гав!";
+      $("#petTap").appendChild(bub); setTimeout(() => bub.remove(), 900);
+      setTimeout(() => e.classList.remove("bark"), 700);
+      return;
+    }
+    e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing");
   };
   view.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => {
     const r = state.house?.house?.rooms.find((x) => x.id === b.dataset.room);
@@ -586,7 +597,7 @@ function houseHtml(p) {
       ${items.map((i) => i.unlocked
         ? `<span class="thing" style="left:${i.x}%;top:${i.y}%" title="${esc(i.name)}">${i.emoji}</span>`
         : `<span class="thing ghost" style="left:${i.x}%;top:${i.y}%">${LOCK}</span>`).join("")}
-      <span class="resident">${p.emoji}</span>
+      <span class="resident ${p.kind === "dog" ? "dogwrap st-" + p.status : ""}">${petFigure(p)}</span>
     </div>
     <div class="card items-list">
       ${room.id === "living" ? h.frames.map((f) => itemRow(f.name, f.unlocked, f.hint)).join("") : ""}
@@ -676,6 +687,68 @@ function updateBadges() {
   const n = state.me?.unread_notes || 0;
   const more = document.querySelector('#tabs button[data-tab="more"]');
   more?.classList.toggle("badge", n > 0);
+}
+
+/* ---------- рисованная собачка ---------- */
+// Каждая часть тела — отдельная группа, её двигает CSS (.dog .tail, .head, .ear-l …).
+// Поведение зависит от классов на обёртке: st-happy / st-hungry / st-sad / st-bored, act-feed, act-pet, bark.
+function petFigure(p) {
+  return p.kind === "dog" ? dogSvg() : p.emoji;
+}
+
+function dogSvg() {
+  const fur = "#E9A55B", furDark = "#C9813D", cream = "#FCE6C6", ear = "#A8642C", ink = "#3B2A26";
+  return `
+  <svg class="dog" viewBox="0 0 200 220" aria-label="собачка">
+    <ellipse class="dog-shadow" cx="100" cy="208" rx="62" ry="8" fill="rgba(0,0,0,.13)"/>
+    <g class="tail"><path d="M136 170 C 166 164, 178 132, 163 113 C 158 107, 150 111, 153 118 C 161 134, 152 151, 132 158 Z" fill="${fur}" stroke="${furDark}" stroke-width="2"/>
+      <path d="M160 112 C 166 118, 168 124, 167 130" stroke="${cream}" stroke-width="5" stroke-linecap="round" fill="none"/></g>
+    <g class="body">
+      <ellipse cx="60" cy="190" rx="28" ry="18" fill="${fur}"/>
+      <ellipse cx="140" cy="190" rx="28" ry="18" fill="${fur}"/>
+      <path d="M100 98 C 142 98, 154 150, 148 188 C 142 204, 58 204, 52 188 C 46 150, 58 98, 100 98 Z" fill="${fur}"/>
+      <ellipse cx="100" cy="148" rx="25" ry="36" fill="${cream}"/>
+      <rect x="79" y="146" width="17" height="54" rx="8.5" fill="${fur}"/>
+      <rect x="104" y="146" width="17" height="54" rx="8.5" fill="${fur}"/>
+      <ellipse cx="87.5" cy="200" rx="11.5" ry="6.5" fill="${cream}"/>
+      <ellipse cx="112.5" cy="200" rx="11.5" ry="6.5" fill="${cream}"/>
+      <ellipse cx="44" cy="200" rx="12" ry="6" fill="${cream}"/>
+      <ellipse cx="156" cy="200" rx="12" ry="6" fill="${cream}"/>
+      <path d="M68 108 Q100 128 132 108" stroke="#FF5C8A" stroke-width="9" stroke-linecap="round" fill="none"/>
+      <circle class="tag" cx="100" cy="124" r="6.5" fill="#FFC94D" stroke="#E0A92A" stroke-width="1.5"/>
+    </g>
+    <g class="bowl">
+      <path d="M150 188 h46 l-7 16 h-32 z" fill="#FF5C8A"/>
+      <ellipse cx="173" cy="188" rx="23" ry="4" fill="#d94a74"/>
+      <circle cx="165" cy="185" r="4" fill="#8a5a3c"/><circle cx="174" cy="183" r="4" fill="#9c6743"/><circle cx="182" cy="186" r="4" fill="#8a5a3c"/>
+    </g>
+    <g class="head">
+      <g class="ear-l"><path d="M60 46 C 38 50, 28 92, 40 112 C 48 122, 62 110, 68 84 Z" fill="${ear}"/></g>
+      <g class="ear-r"><path d="M140 46 C 162 50, 172 92, 160 112 C 152 122, 138 110, 132 84 Z" fill="${ear}"/></g>
+      <ellipse cx="100" cy="70" rx="46" ry="41" fill="${fur}"/>
+      <path d="M100 30 C 92 40, 92 54, 100 62 C 108 54, 108 40, 100 30 Z" fill="${cream}" opacity=".9"/>
+      <ellipse cx="100" cy="90" rx="26" ry="18" fill="${cream}"/>
+      <ellipse class="blush" cx="68" cy="88" rx="8" ry="4.5" fill="#FF8FB0" opacity=".45"/>
+      <ellipse class="blush" cx="132" cy="88" rx="8" ry="4.5" fill="#FF8FB0" opacity=".45"/>
+      <g class="eyes-open">
+        <ellipse cx="81" cy="68" rx="6" ry="7.5" fill="${ink}"/><circle cx="83" cy="65" r="2.2" fill="#fff"/>
+        <ellipse cx="119" cy="68" rx="6" ry="7.5" fill="${ink}"/><circle cx="121" cy="65" r="2.2" fill="#fff"/>
+      </g>
+      <g class="eyes-happy" stroke="${ink}" stroke-width="3.5" stroke-linecap="round" fill="none">
+        <path d="M74 70 Q81 62 88 70"/><path d="M112 70 Q119 62 126 70"/>
+      </g>
+      <g class="brows" stroke="${ink}" stroke-width="3" stroke-linecap="round">
+        <path d="M73 59 L87 54"/><path d="M127 59 L113 54"/>
+      </g>
+      <ellipse cx="100" cy="82" rx="8.5" ry="6" fill="${ink}"/><ellipse cx="97.5" cy="80" rx="2.6" ry="1.6" fill="#fff" opacity=".7"/>
+      <g class="mouth-smile" stroke="${ink}" stroke-width="2.6" stroke-linecap="round" fill="none">
+        <path d="M100 88 L100 94"/><path d="M100 94 Q93 101 86 96"/><path d="M100 94 Q107 101 114 96"/>
+      </g>
+      <path class="mouth-sad" d="M88 101 Q100 93 112 101" stroke="${ink}" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <ellipse class="mouth-open" cx="100" cy="99" rx="8" ry="7" fill="${ink}"/>
+      <path class="tongue" d="M94 97 Q100 116 106 97 Z" fill="#FF6F91"/>
+    </g>
+  </svg>`;
 }
 
 boot();
