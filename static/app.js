@@ -492,9 +492,19 @@ function drawPet(p) {
     const cd = p.cooldowns[action];
     return `<button class="pet-btn ${cd ? "ghost" : ""}" data-act="${action}" ${cd ? "disabled" : ""}>${label}${cd ? `<small>${cdText(cd)}</small>` : ""}</button>`;
   };
+  const stat = (cls, ico, label, val, pct, low) => `
+    <div class="stat2 ${cls}">
+      <span class="s-ico">${ico}</span>
+      <div class="s-main"><div class="s-top"><span>${label}</span><b>${val}</b></div>
+      <div class="bar"><i style="width:${pct}%" class="${low ? "low" : ""}"></i></div></div>
+    </div>`;
+  const GROW = [["Отметить настроение", "+10", "оба за день — ещё +10"], ["Новый момент", "+15", ""], ["Сбывшаяся мечта", "+40", ""],
+    ["Записка в «Несказанном»", "+10", ""], ["Копилка, желание, новая мечта", "+5", ""], ["Покормить, погладить", "+3", "у каждого своя перезарядка"]];
   view.innerHTML = `
     <div class="pet-card st-${p.status} sg-${p.stage}">
-      <div class="pet-top"><button class="pet-name" id="rename">${esc(p.name)} ✎</button><span class="pet-lvl">${egg ? "яйцо" : `ур. ${p.level} · ${STAGE_NAMES[p.stage]}`}</span></div>
+      <div class="pc-deco"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="pet-top"><button class="pet-name" id="rename">${esc(p.name)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
+        <span class="pet-lvl">${ICO.xp}${egg ? "яйцо" : `ур. ${p.level} · ${STAGE_NAMES[p.stage]}`}</span></div>
       <div class="pet-stage" id="petTap">
         ${p.stage === "legend" ? `<div class="crown">👑</div>` : ""}
         <div class="pet-emoji ${!egg && p.kind === "dog" ? "dogwrap" : ""}">${egg ? "🥚" : petFigure(p)}</div>
@@ -502,26 +512,20 @@ function drawPet(p) {
       </div>
       <div class="pet-status">${esc(p.status_text)}</div>
     </div>
-    <div class="card">
-      ${egg ? "" : `<div class="stat"><span>Сытость</span><div class="bar"><i style="width:${p.food}%" class="${p.food < 25 ? "low" : ""}"></i></div><b>${p.food}</b></div>
-      <div class="stat"><span>Радость</span><div class="bar"><i style="width:${p.joy}%" class="${p.joy < 25 ? "low" : ""}"></i></div><b>${p.joy}</b></div>`}
-      <div class="stat"><span>${egg ? "До вылупления" : "Опыт"}</span><div class="bar"><i style="width:${lvlPct}%" class="xp"></i></div><b>${lvlPct}%</b></div>
+    <div class="card stats-card">
+      ${egg ? "" : stat("food", ICO.food, "Сытость", p.food, p.food, p.food < 25) + stat("joy", ICO.joy, "Радость", p.joy, p.joy, p.joy < 25)}
+      ${stat("xp", ICO.xp, egg ? "До вылупления" : "Опыт", `${lvlPct}%`, lvlPct, false)}
     </div>
     <div class="pet-actions">
-      ${egg ? btn("pet", "Согреть") : btn("feed", "Покормить") + btn("pet", "Погладить")}
+      ${egg ? btn("pet", ICO.sun + "Согреть") : btn("feed", ICO.food + "Покормить") + btn("pet", ICO.joy + "Погладить")}
     </div>
     ${memoryHtml(p)}
     ${houseHtml(p)}
     <h2>Как ${esc(p.name)} растёт</h2>
-    <div class="card muted grow-list">
-      <div>Отметить настроение — <b>+10</b> (оба за день — ещё <b>+10</b>)</div>
-      <div>Новый момент — <b>+15</b></div>
-      <div>Сбывшаяся мечта — <b>+40</b></div>
-      <div>Записка в «Несказанном» — <b>+10</b></div>
-      <div>Пополнить копилку, новое желание, новая мечта — <b>+5</b></div>
-      <div>Покормить, погладить — <b>+3</b> (у каждого своя перезарядка)</div>
+    <div class="card grow-list">
+      ${GROW.map(([t, v, n]) => `<div class="g-row"><span class="g-t">${t}${n ? `<small>${n}</small>` : ""}</span><b class="g-v">${v}</b></div>`).join("")}
     </div>
-    ${p.log.length ? `<h2>Недавно</h2><div class="card">${p.log.map((l) => `<div class="row between log"><span>${esc(l.who)} ${ACT_NAMES[l.action] || l.action}</span><span class="muted">${ago(l.ago_min)}</span></div>`).join("")}</div>` : ""}
+    ${p.log.length ? `<h2>Недавно</h2><div class="card log-card">${p.log.map((l) => `<div class="log"><span class="l-dot"></span><span class="grow">${esc(l.who)} ${ACT_NAMES[l.action] || l.action}</span><span class="muted">${ago(l.ago_min)}</span></div>`).join("")}</div>` : ""}
   `;
   view.querySelectorAll("[data-act]").forEach((b) => (b.onclick = async () => {
     b.disabled = true;
@@ -570,12 +574,22 @@ function hearts(ch, n = 5) {
 /* ---------- дом питомца и воспоминания ---------- */
 const LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 
+const CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+const ICO = {
+  food: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12h17a8.5 8.5 0 0 1-17 0z"/><path d="M8 8c0-1.6 1-1.6 1-3.2M12 8c0-1.6 1-1.6 1-3.2M16 8c0-1.6 1-1.6 1-3.2"/></svg>`,
+  joy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10.4A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.5c0 5.8-7.5 10.4-7.5 10.4z"/></svg>`,
+  xp: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.2 6.6 20.1l1-6.1L3.2 9.7l6.1-.9z"/></svg>`,
+  sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></svg>`,
+  book: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>`,
+};
+
 function memoryHtml(p) {
   const m = state.house?.memory;
   if (!m || p.stage === "egg") return "";
   return `
     <div class="card memory">
-      ${m.photo ? `<img src="${photoUrl(m.photo)}" alt="">` : ""}
+      ${m.photo ? `<img src="${photoUrl(m.photo)}" alt="">` : `<span class="mem-ico">${ICO.book}</span>`}
       <div><div class="mem-who">${esc(p.name)} вспоминает</div><div class="mem-text">${esc(m.text)}</div></div>
     </div>`;
 }
@@ -589,28 +603,32 @@ function houseHtml(p) {
   const items = room.items;
   const got = items.filter((i) => i.unlocked).length + (room.id === "living" ? h.frames.filter((f) => f.unlocked).length : 0);
   const total = items.length + (room.id === "living" ? h.frames.length : 0);
-  const frames = room.id === "living" ? `<div class="frames">${h.frames.map((f) =>
-    f.unlocked ? `<div class="frame">${f.photo ? `<img src="${photoUrl(f.photo)}" alt="">` : ""}</div>` : `<div class="frame locked">${LOCK}</div>`).join("")}</div>` : "";
+  const hr = new Date().getHours();
+  const art = SCENE.render(room.id, {
+    has: (id) => items.some((i) => i.id === id && i.unlocked),
+    frames: h.frames, photo: photoUrl, night: hr < 7 || hr >= 20,
+  });
   return `
     <h2>Дом <small>${got} из ${total}</small></h2>
     <div class="rooms">${h.rooms.map((r) => `<button data-room="${r.id}" class="${r.id === room.id ? "on" : ""} ${r.unlocked ? "" : "locked"}">${r.unlocked ? "" : LOCK}${esc(r.name)}${r.unlocked ? "" : `<small>ур. ${r.level}</small>`}</button>`).join("")}</div>
-    <div class="scene room-${room.id}">
-      ${frames}
-      ${items.map((i) => i.unlocked
-        ? `<span class="thing" style="left:${i.x}%;top:${i.y}%" title="${esc(i.name)}">${i.emoji}</span>`
-        : `<span class="thing ghost" style="left:${i.x}%;top:${i.y}%">${LOCK}</span>`).join("")}
+    <div class="scene scene-${room.id}">
+      ${art}
       <span class="resident ${p.kind === "dog" ? "dogwrap st-" + p.status : ""}">${petFigure(p)}</span>
     </div>
-    <div class="card items-list">
+    <div class="items-list">
       ${room.id === "living" ? h.frames.map((f) => itemRow(f.name, f.unlocked, f.hint)).join("") : ""}
       ${items.map((i) => itemRow(i.name, i.unlocked, i.hint, i.progress, i.need)).join("")}
     </div>`;
 }
 
 const itemRow = (name, unlocked, hint, progress, need) => `
-  <div class="item-row ${unlocked ? "" : "locked"}">
-    <span class="grow">${esc(name)}</span>
-    ${unlocked ? `<span class="tag ok">есть</span>` : `<span class="muted">${esc(hint)}${need > 1 ? ` · ${progress}/${need}` : ""}</span>`}
+  <div class="item-row ${unlocked ? "have" : "locked"}">
+    <span class="ir-ico">${unlocked ? CHECK : LOCK}</span>
+    <div class="ir-body">
+      <span class="ir-name">${esc(name)}</span>
+      ${unlocked ? "" : `<span class="ir-hint">${esc(hint)}</span>${need > 1 ? `<div class="ir-bar"><i style="width:${Math.round((progress / need) * 100)}%"></i></div>` : ""}`}
+    </div>
+    ${unlocked ? "" : need > 1 ? `<span class="ir-num">${progress}/${need}</span>` : ""}
   </div>`;
 
 /* ---------- Несказанное ---------- */
