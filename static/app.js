@@ -370,7 +370,9 @@ async function renderMood() {
     success(); toast(`${p} увидит`); render();
   };
 }
-const cell = (m) => `<div class="c">${m ? `${m.emoji}${m.note ? `<small>${esc(m.note)}</small>` : ""}` : `<span class="muted">·</span>`}</div>`;
+const cell = (m) => m
+  ? `<div class="c"><span class="ce">${m.emoji}</span>${m.note ? `<small>${esc(m.note)}</small>` : ""}</div>`
+  : `<div class="c e">·</div>`;
 
 /* ---------- Копилка ---------- */
 async function renderGoals() {

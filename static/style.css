@@ -536,3 +536,19 @@ h2 { position: relative; }
 .mem-text { font-weight: 600; }
 .pet-stage { height: 184px; }
 .items-list .item-row { padding: 10px 14px; gap: 12px; }
+
+/* ===== настроение: аккуратная история ===== */
+html, body { overflow-x: hidden; }
+#view, .card { min-width: 0; }
+.today-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.today-pair .card { padding: 16px 12px; overflow-wrap: anywhere; word-break: break-word; }
+.today-pair .em { font-size: 44px; margin: 4px 0 6px; }
+.today-pair .muted { font-size: 13.5px; line-height: 1.3; }
+.week { grid-template-columns: 50px minmax(0, 1fr) minmax(0, 1fr); gap: 4px 10px; padding: 10px 14px 12px; }
+.week .head { padding-bottom: 6px; border-bottom: 1px solid rgba(150,120,130,.15); }
+.week .d { align-self: start; padding-top: 6px; font-size: 12.5px; }
+.week .c { display: flex; align-items: flex-start; gap: 8px; min-width: 0; padding: 6px 8px; border-radius: 12px; background: rgba(150,130,160,.07); font-size: 14px; min-height: 36px; }
+.week .c .ce { flex: none; font-size: 22px; line-height: 1.15; }
+.week .c small { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; white-space: normal; overflow: hidden; overflow-wrap: anywhere; word-break: break-word; font-size: 12.5px; line-height: 1.3; color: var(--text); opacity: .75; padding-top: 3px; min-width: 0; }
+.week .c.e { background: transparent; min-height: 22px; padding: 2px 8px; color: var(--hint); opacity: .6; align-items: center; }
+.week .d:has(+ .c.e + .c.e) { padding-top: 2px; opacity: .6; }
