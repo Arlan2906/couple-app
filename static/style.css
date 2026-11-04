@@ -1,5 +1,5 @@
 :root {
-  --bg: #FFEEF3;
+  --bg: #FFDCE8;
   --card: #ffffff;
   --text: #2b2024;
   --hint: #9a8a8f;
@@ -600,6 +600,6 @@ html, body { overflow-x: hidden; }
 @keyframes crumbFly { 0% { opacity: 0; transform: translate(0, 0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), -13px) rotate(120deg); } }
 
 /* нежно-розовый фон */
-html { background: #FFEEF3; color-scheme: light; }
-body { background: radial-gradient(120% 60% at 50% 0%, #FFF8FA 0%, rgba(255,248,250,0) 60%), linear-gradient(180deg, #FFEEF3 0%, #FFE6EE 100%) fixed; min-height: 100vh; }
+html { background: #FFDCE8; color-scheme: light; }
+body { background: radial-gradient(120% 55% at 50% 0%, #FFEAF1 0%, rgba(255,234,241,0) 65%), linear-gradient(180deg, #FFDCE8 0%, #FFCADC 100%) fixed; min-height: 100vh; }
 .tabs { background: rgba(255,255,255,.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }

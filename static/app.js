@@ -2,7 +2,7 @@ const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
 // нежно-розовый фон независимо от темы Telegram
-try { tg?.setHeaderColor?.("#FFE9F0"); tg?.setBackgroundColor?.("#FFEEF3"); tg?.setBottomBarColor?.("#FFFFFF"); } catch {}
+try { tg?.setHeaderColor?.("#FFDCE8"); tg?.setBackgroundColor?.("#FFDCE8"); tg?.setBottomBarColor?.("#FFFFFF"); } catch {}
 
 const $ = (s, el = document) => el.querySelector(s);
 const view = $("#view");
