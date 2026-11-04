@@ -718,68 +718,76 @@ function petFigure(p) {
   return p.kind === "dog" ? dogSvg() : p.emoji;
 }
 
-function dogSvg() {
+const DOG_DEFAULT = {   // корги
+  id: "dg", fur: ["#F9C27A", "#EE9D40", "#BF6A22"], cream: ["#FFFFFF", "#F3E7D6"], ear: ["#E08A33", "#9A5115"],
+  iris: ["#C98A45", "#7A4219", "#3C1E0C"], shade: "#8E4217", brow: "#6E3112", browSpot: "#F8D4A2", collar: ["#2FB67C", "#8FE6BF"],
+  ears: "pointy", mask: null, spots: [], earInner: "#FBD9C4",
+};
+
+function dogSvg(v = {}) {
+  const P = { ...DOG_DEFAULT, ...v }, I = P.id;
   const ink = "#2A1A16";
   // шерсть: штрихи по корпусу, чтобы выглядела не плоской заливкой
   const strands = (pts, col, op = .35, w = 1.4) => pts.map(([x, y, dx, dy]) =>
     `<path d="M${x} ${y} q${dx / 2 + 1.5} ${dy / 2} ${dx} ${dy}" stroke="${col}" stroke-opacity="${op}" stroke-width="${w}" stroke-linecap="round" fill="none"/>`).join("");
   const flank = strands([[60, 150, -4, 22], [66, 144, -3, 26], [54, 160, -3, 20], [72, 140, -2, 24], [140, 150, 4, 22], [134, 144, 3, 26], [146, 160, 3, 20], [128, 140, 2, 24],
-    [62, 176, -5, 14], [138, 176, 5, 14], [70, 170, -3, 16], [130, 170, 3, 16]], "#8E4217", .35);
+    [62, 176, -5, 14], [138, 176, 5, 14], [70, 170, -3, 16], [130, 170, 3, 16]], P.shade, .35);
   const chestFur = strands([[88, 118, 1, 14], [94, 120, 1, 18], [100, 121, 0, 20], [106, 120, -1, 18], [112, 118, -1, 14], [84, 132, 2, 16], [116, 132, -2, 16],
     [90, 140, 1, 18], [100, 142, 0, 18], [110, 140, -1, 18]], "#D9B48A", .6, 1.3);
-  const cheekL = `<path d="M53 88 L47 94 L54 94 L50 101 L60 98 L58 106 L65 99Z" fill="url(#dg-fur)"/>`;
-  const cheekR = `<path d="M147 88 L153 94 L146 94 L150 101 L140 98 L142 106 L135 99Z" fill="url(#dg-fur)"/>`;
+  const cheekL = `<path d="M53 88 L47 94 L54 94 L50 101 L60 98 L58 106 L65 99Z" fill="url(#${I}-fur)"/>`;
+  const cheekR = `<path d="M147 88 L153 94 L146 94 L150 101 L140 98 L142 106 L135 99Z" fill="url(#${I}-fur)"/>`;
   const whiskerDots = [[84, 94], [88, 98], [82, 99], [90, 93], [116, 94], [112, 98], [118, 99], [110, 93]]
     .map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".9" fill="#7B5A44" opacity=".55"/>`).join("");
   return `
   <svg class="dog" viewBox="0 0 200 220" aria-label="собачка">
     <defs>
-      <radialGradient id="dg-fur" cx=".4" cy=".28" r=".85"><stop offset="0" stop-color="#F7B56C"/><stop offset=".5" stop-color="#E88B3A"/><stop offset="1" stop-color="#B9591F"/></radialGradient>
-      <linearGradient id="dg-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE9A4A"/><stop offset=".6" stop-color="#DD7C30"/><stop offset="1" stop-color="#B9591F"/></linearGradient>
-      <linearGradient id="dg-leg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#C96A28"/><stop offset=".45" stop-color="#EE9A4A"/><stop offset="1" stop-color="#C96A28"/></linearGradient>
-      <radialGradient id="dg-cream" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="#FFF6E8"/><stop offset="1" stop-color="#F2D3AB"/></radialGradient>
-      <linearGradient id="dg-ear" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B25C26"/><stop offset="1" stop-color="#6E3112"/></linearGradient>
-      <radialGradient id="dg-nose" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#5A4540"/><stop offset="1" stop-color="#1B1210"/></radialGradient>
-      <radialGradient id="dg-iris" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#C98A45"/><stop offset=".6" stop-color="#7A4219"/><stop offset="1" stop-color="#3C1E0C"/></radialGradient>
-      <radialGradient id="dg-shadow"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${I}-fur" cx=".4" cy=".28" r=".85"><stop offset="0" stop-color="${P.fur[0]}"/><stop offset=".5" stop-color="${P.fur[1]}"/><stop offset="1" stop-color="${P.fur[2]}"/></radialGradient>
+      <linearGradient id="${I}-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.fur[0]}"/><stop offset=".6" stop-color="${P.fur[1]}"/><stop offset="1" stop-color="${P.fur[2]}"/></linearGradient>
+      <linearGradient id="${I}-leg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${P.fur[2]}"/><stop offset=".45" stop-color="${P.fur[0]}"/><stop offset="1" stop-color="${P.fur[2]}"/></linearGradient>
+      <radialGradient id="${I}-cream" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="${P.cream[0]}"/><stop offset="1" stop-color="${P.cream[1]}"/></radialGradient>
+      <linearGradient id="${I}-ear" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${P.ear[0]}"/><stop offset="1" stop-color="${P.ear[1]}"/></linearGradient>
+      <radialGradient id="${I}-nose" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#5A4540"/><stop offset="1" stop-color="#1B1210"/></radialGradient>
+      <radialGradient id="${I}-iris" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="${P.iris[0]}"/><stop offset=".6" stop-color="${P.iris[1]}"/><stop offset="1" stop-color="${P.iris[2]}"/></radialGradient>
+      <radialGradient id="${I}-shadow"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
     </defs>
-    <ellipse class="dog-shadow" cx="100" cy="207" rx="70" ry="10" fill="url(#dg-shadow)"/>
+    <ellipse class="dog-shadow" cx="100" cy="207" rx="70" ry="10" fill="url(#${I}-shadow)"/>
 
     <g class="tail">
-      <path d="M134 178 C 174 176, 192 142, 176 108 C 171 99, 160 101, 162 112 C 168 134, 158 154, 132 162Z" fill="url(#dg-fur)"/>
-      <path d="M176 108 C 171 99, 160 101, 162 112 C 164 118, 165 122, 165 126 C 171 124, 178 118, 176 108Z" fill="url(#dg-cream)"/>
-      ${strands([[150, 160, 12, -16], [156, 152, 12, -20], [160, 142, 10, -22], [164, 132, 6, -20], [146, 168, 14, -10]], "#8E4217", .4)}
+      <path d="M134 178 C 174 176, 192 142, 176 108 C 171 99, 160 101, 162 112 C 168 134, 158 154, 132 162Z" fill="url(#${I}-fur)"/>
+      <path d="M176 108 C 171 99, 160 101, 162 112 C 164 118, 165 122, 165 126 C 171 124, 178 118, 176 108Z" fill="url(#${I}-cream)"/>
+      ${strands([[150, 160, 12, -16], [156, 152, 12, -20], [160, 142, 10, -22], [164, 132, 6, -20], [146, 168, 14, -10]], P.shade, .4)}
       ${strands([[168, 140, 3, -14], [172, 130, 2, -14], [170, 120, 0, -10]], "#fff", .35, 1.2)}
     </g>
 
     <g class="body">
       <!-- задние лапы-бёдра -->
-      <ellipse cx="56" cy="184" rx="32" ry="22" fill="url(#dg-body)"/>
-      <ellipse cx="144" cy="184" rx="32" ry="22" fill="url(#dg-body)"/>
+      <ellipse cx="56" cy="184" rx="32" ry="22" fill="url(#${I}-body)"/>
+      <ellipse cx="144" cy="184" rx="32" ry="22" fill="url(#${I}-body)"/>
       <path d="M34 178 C 38 160, 58 156, 72 166" stroke="#fff" stroke-opacity=".22" stroke-width="3" stroke-linecap="round" fill="none"/>
       <path d="M166 178 C 162 160, 142 156, 128 166" stroke="#fff" stroke-opacity=".22" stroke-width="3" stroke-linecap="round" fill="none"/>
       <!-- туловище -->
-      <path d="M100 96 C 146 96, 158 150, 150 188 C 142 206, 58 206, 50 188 C 42 150, 54 96, 100 96Z" fill="url(#dg-body)"/>
+      <path d="M100 96 C 146 96, 158 150, 150 188 C 142 206, 58 206, 50 188 C 42 150, 54 96, 100 96Z" fill="url(#${I}-body)"/>
       ${flank}
       <!-- грудь -->
-      <path d="M100 110 C 76 114, 68 150, 74 182 C 88 192, 112 192, 126 182 C 132 150, 124 114, 100 110Z" fill="url(#dg-cream)"/>
+      <path d="M100 110 C 76 114, 68 150, 74 182 C 88 192, 112 192, 126 182 C 132 150, 124 114, 100 110Z" fill="url(#${I}-cream)"/>
       ${chestFur}
       <path d="M78 180 C 90 188, 110 188, 122 180" stroke="#D9B48A" stroke-opacity=".7" stroke-width="2" fill="none" stroke-linecap="round"/>
       <!-- передние лапы -->
-      <path d="M78 148 C 76 170, 76 190, 78 202 H 98 C 99 186, 98 166, 96 148Z" fill="url(#dg-leg)"/>
-      <path d="M104 148 C 102 166, 101 186, 102 202 H 122 C 124 190, 124 170, 122 148Z" fill="url(#dg-leg)"/>
-      <path d="M97 152 V 200" stroke="#8E4217" stroke-opacity=".3" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M103 152 V 200" stroke="#8E4217" stroke-opacity=".3" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M78 148 C 76 170, 76 190, 78 202 H 98 C 99 186, 98 166, 96 148Z" fill="url(#${I}-leg)"/>
+      <path d="M104 148 C 102 166, 101 186, 102 202 H 122 C 124 190, 124 170, 122 148Z" fill="url(#${I}-leg)"/>
+      <path d="M97 152 V 200" stroke=P.shade stroke-opacity=".3" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M103 152 V 200" stroke=P.shade stroke-opacity=".3" stroke-width="1.6" stroke-linecap="round"/>
       <!-- лапки -->
-      <path d="M74 200 C 74 191, 98 191, 100 200 C 101 208, 74 208, 74 200Z" fill="url(#dg-cream)"/>
-      <path d="M100 200 C 102 191, 126 191, 126 200 C 126 208, 99 208, 100 200Z" fill="url(#dg-cream)"/>
+      <path d="M74 200 C 74 191, 98 191, 100 200 C 101 208, 74 208, 74 200Z" fill="url(#${I}-cream)"/>
+      <path d="M100 200 C 102 191, 126 191, 126 200 C 126 208, 99 208, 100 200Z" fill="url(#${I}-cream)"/>
       <path d="M82 196 v6 M88 195 v7 M94 196 v6 M106 196 v6 M112 195 v7 M118 196 v6" stroke="#C9A67E" stroke-width="1.2" stroke-linecap="round"/>
-      <path d="M24 198 C 24 188, 52 188, 54 198 C 55 207, 24 208, 24 198Z" fill="url(#dg-cream)"/>
-      <path d="M146 198 C 148 188, 176 188, 176 198 C 176 208, 145 207, 146 198Z" fill="url(#dg-cream)"/>
+      <path d="M24 198 C 24 188, 52 188, 54 198 C 55 207, 24 208, 24 198Z" fill="url(#${I}-cream)"/>
+      <path d="M146 198 C 148 188, 176 188, 176 198 C 176 208, 145 207, 146 198Z" fill="url(#${I}-cream)"/>
       <path d="M32 194 v6 M38 193 v7 M44 194 v6 M156 194 v6 M162 193 v7 M168 194 v6" stroke="#C9A67E" stroke-width="1.2" stroke-linecap="round"/>
+      ${P.spots.filter((s) => s[3] === "b").map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * .85}" fill="#1E1A1A" opacity=".92"/>`).join("")}
       <!-- ошейник -->
-      <path d="M66 106 Q100 130 134 106" stroke="#B8284F" stroke-width="10" stroke-linecap="round" fill="none"/>
-      <path d="M66 103 Q100 127 134 103" stroke="#FF7FA3" stroke-opacity=".7" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+      <path d="M66 106 Q100 130 134 106" stroke="${P.collar[0]}" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <path d="M66 103 Q100 127 134 103" stroke="${P.collar[1]}" stroke-opacity=".7" stroke-width="2.4" stroke-linecap="round" fill="none"/>
       <g class="tag"><circle cx="100" cy="125" r="7" fill="#FFD25A" stroke="#C99416" stroke-width="1.4"/><circle cx="98" cy="123" r="2.2" fill="#fff" opacity=".7"/><path d="M96 128h8" stroke="#C99416" stroke-width="1.2" stroke-linecap="round"/></g>
     </g>
 
@@ -791,37 +799,48 @@ function dogSvg() {
     </g>
 
     <g class="head">
+      ${P.ears === "pointy" ? `
       <g class="ear-l">
-        <path d="M62 40 C 32 44, 20 98, 36 128 C 46 140, 66 122, 72 92 C 74 70, 72 52, 62 40Z" fill="url(#dg-ear)"/>
-        <path d="M58 52 C 42 62, 36 96, 44 118" stroke="#fff" stroke-opacity=".16" stroke-width="5" stroke-linecap="round" fill="none"/>
-        ${strands([[50, 100, -2, 22], [58, 96, -1, 24], [44, 108, -2, 16], [64, 92, 0, 22]], "#3A1706", .45)}
+        <path d="M54 58 C 44 34, 48 12, 58 4 C 76 12, 90 30, 94 48Z" fill="url(#${I}-ear)"/>
+        <path d="M61 46 C 56 32, 58 20, 63 13 C 73 20, 81 31, 83 43Z" fill="${P.earInner}"/>
       </g>
       <g class="ear-r">
-        <path d="M138 40 C 168 44, 180 98, 164 128 C 154 140, 134 122, 128 92 C 126 70, 128 52, 138 40Z" fill="url(#dg-ear)"/>
-        <path d="M142 52 C 158 62, 164 96, 156 118" stroke="#fff" stroke-opacity=".16" stroke-width="5" stroke-linecap="round" fill="none"/>
-        ${strands([[150, 100, 2, 22], [142, 96, 1, 24], [156, 108, 2, 16], [136, 92, 0, 22]], "#3A1706", .45)}
+        <path d="M146 58 C 156 34, 152 12, 142 4 C 124 12, 110 30, 106 48Z" fill="url(#${I}-ear)"/>
+        <path d="M139 46 C 144 32, 142 20, 137 13 C 127 20, 119 31, 117 43Z" fill="${P.earInner}"/>
+      </g>` : `
+      <g class="ear-l">
+        <path d="M62 40 C 32 44, 20 98, 36 128 C 46 140, 66 122, 72 92 C 74 70, 72 52, 62 40Z" fill="url(#${I}-ear)"/>
+        <path d="M58 52 C 42 62, 36 96, 44 118" stroke="#fff" stroke-opacity=".16" stroke-width="5" stroke-linecap="round" fill="none"/>
+        ${strands([[50, 100, -2, 22], [58, 96, -1, 24], [44, 108, -2, 16], [64, 92, 0, 22]], "#1a0a02", .4)}
       </g>
+      <g class="ear-r">
+        <path d="M138 40 C 168 44, 180 98, 164 128 C 154 140, 134 122, 128 92 C 126 70, 128 52, 138 40Z" fill="url(#${I}-ear)"/>
+        <path d="M142 52 C 158 62, 164 96, 156 118" stroke="#fff" stroke-opacity=".16" stroke-width="5" stroke-linecap="round" fill="none"/>
+        ${strands([[150, 100, 2, 22], [142, 96, 1, 24], [156, 108, 2, 16], [136, 92, 0, 22]], "#1a0a02", .4)}
+      </g>`}
       <!-- голова -->
-      <path d="M100 26 C 138 26, 154 52, 152 78 C 150 104, 126 118, 100 118 C 74 118, 50 104, 48 78 C 46 52, 62 26, 100 26Z" fill="url(#dg-fur)"/>
+      <path d="M100 26 C 138 26, 154 52, 152 78 C 150 104, 126 118, 100 118 C 74 118, 50 104, 48 78 C 46 52, 62 26, 100 26Z" fill="url(#${I}-fur)"/>
       ${cheekL}${cheekR}
-      <path d="M100 28 C 92 40, 93 56, 100 70 C 107 56, 108 40, 100 28Z" fill="url(#dg-cream)" opacity=".92"/>
+      ${P.mask ? `<path d="M100 26 C 138 26 154 50 152 72 C 140 62 124 58 112 58 L100 74 L88 58 C 76 58 60 62 48 72 C 46 50 62 26 100 26Z" fill="${P.mask}" opacity=".92"/>` : ""}
+      ${P.spots.filter((s) => s[3] === "h").map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * .85}" fill="#1E1A1A"/>`).join("")}
+      <path d="M100 28 C 92 40, 93 56, 100 70 C 107 56, 108 40, 100 28Z" fill="url(#${I}-cream)" opacity=".92"/>
       <path d="M72 38 C 82 30, 118 30, 128 38" stroke="#fff" stroke-opacity=".25" stroke-width="4" stroke-linecap="round" fill="none"/>
       <!-- морда -->
-      <path d="M70 90 C 70 74, 86 68, 100 68 C 114 68, 130 74, 130 90 C 130 108, 116 120, 100 120 C 84 120, 70 108, 70 90Z" fill="url(#dg-cream)"/>
+      <path d="M70 90 C 70 74, 86 68, 100 68 C 114 68, 130 74, 130 90 C 130 108, 116 120, 100 120 C 84 120, 70 108, 70 90Z" fill="url(#${I}-cream)"/>
       ${whiskerDots}
       <ellipse class="blush" cx="64" cy="90" rx="8" ry="4.5" fill="#FF8FB0" opacity=".3"/>
       <ellipse class="blush" cx="136" cy="90" rx="8" ry="4.5" fill="#FF8FB0" opacity=".3"/>
       <!-- брови-пятнышки -->
-      <ellipse cx="80" cy="50" rx="5" ry="2.6" fill="#F8D4A2" opacity=".85"/><ellipse cx="120" cy="50" rx="5" ry="2.6" fill="#F8D4A2" opacity=".85"/>
+      <ellipse cx="80" cy="50" rx="5" ry="2.6" fill="${P.browSpot}" opacity=".85"/><ellipse cx="120" cy="50" rx="5" ry="2.6" fill="${P.browSpot}" opacity=".85"/>
       <!-- глаза -->
       <g class="eyes-open">
         <ellipse cx="80" cy="64" rx="8.2" ry="8.6" fill="#241410"/>
-        <ellipse cx="80" cy="64.5" rx="6.6" ry="7.2" fill="url(#dg-iris)"/>
+        <ellipse cx="80" cy="64.5" rx="6.6" ry="7.2" fill="url(#${I}-iris)"/>
         <circle cx="80" cy="65" r="3.5" fill="#0E0705"/>
         <circle cx="83" cy="61" r="2.5" fill="#fff"/><circle cx="77" cy="68" r="1.1" fill="#fff" opacity=".8"/>
         <path d="M71 59 Q80 52 89 59" stroke="#3C1E0C" stroke-width="1.8" stroke-linecap="round" fill="none"/>
         <ellipse cx="120" cy="64" rx="8.2" ry="8.6" fill="#241410"/>
-        <ellipse cx="120" cy="64.5" rx="6.6" ry="7.2" fill="url(#dg-iris)"/>
+        <ellipse cx="120" cy="64.5" rx="6.6" ry="7.2" fill="url(#${I}-iris)"/>
         <circle cx="120" cy="65" r="3.5" fill="#0E0705"/>
         <circle cx="123" cy="61" r="2.5" fill="#fff"/><circle cx="117" cy="68" r="1.1" fill="#fff" opacity=".8"/>
         <path d="M111 59 Q120 52 129 59" stroke="#3C1E0C" stroke-width="1.8" stroke-linecap="round" fill="none"/>
@@ -829,11 +848,11 @@ function dogSvg() {
       <g class="eyes-happy" stroke="${ink}" stroke-width="3.4" stroke-linecap="round" fill="none">
         <path d="M72 66 Q80 57 88 66"/><path d="M112 66 Q120 57 128 66"/>
       </g>
-      <g class="brows" stroke="#6E3112" stroke-width="3" stroke-linecap="round">
+      <g class="brows" stroke="${P.brow}" stroke-width="3" stroke-linecap="round">
         <path d="M71 53 L88 47"/><path d="M129 53 L112 47"/>
       </g>
       <!-- нос -->
-      <path d="M86 80 C 86 72, 114 72, 114 80 C 114 87, 106 92, 100 92 C 94 92, 86 87, 86 80Z" fill="url(#dg-nose)"/>
+      <path d="M86 80 C 86 72, 114 72, 114 80 C 114 87, 106 92, 100 92 C 94 92, 86 87, 86 80Z" fill="url(#${I}-nose)"/>
       <ellipse cx="94" cy="77" rx="5" ry="2.2" fill="#fff" opacity=".4"/>
       <path d="M93 83 q-2 2 0 3.4M107 83 q2 2 0 3.4" stroke="#0A0605" stroke-width="1.4" stroke-linecap="round" fill="none"/>
       <!-- рот -->
