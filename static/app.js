@@ -536,7 +536,7 @@ function drawPet(p) {
       success(); hearts(b.dataset.act === "feed" ? "+22 сытость" : "+12 радость", 1);
       const fig = $(".pet-emoji");
       fig?.classList.add(`act-${b.dataset.act}`);   // собачка ест из миски / жмурится от удовольствия
-      setTimeout(() => refreshHouse(d.pet), fig?.classList.contains("dogwrap") ? 2200 : 700);
+      setTimeout(() => refreshHouse(d.pet), fig?.classList.contains("dogwrap") ? 2900 : 700);
     } catch { b.disabled = false; }
   }));
   $("#petTap").onclick = () => {
@@ -791,13 +791,12 @@ function dogSvg(v = {}) {
       <g class="tag"><circle cx="100" cy="125" r="7" fill="#FFD25A" stroke="#C99416" stroke-width="1.4"/><circle cx="98" cy="123" r="2.2" fill="#fff" opacity=".7"/><path d="M96 128h8" stroke="#C99416" stroke-width="1.2" stroke-linecap="round"/></g>
     </g>
 
-    <g class="bowl">
-      <path d="M150 188 h46 l-7 16 h-32 z" fill="#E8497A"/>
-      <path d="M152 190 h42 l-1.5 3 h-39z" fill="#fff" opacity=".25"/>
-      <ellipse cx="173" cy="188" rx="23" ry="4.5" fill="#C23A66"/>
-      <circle cx="165" cy="185" r="4" fill="#7B4A2B"/><circle cx="174" cy="183" r="4" fill="#8E5A36"/><circle cx="182" cy="186" r="4" fill="#7B4A2B"/>
+    <g class="bowl bowl-back">
+      <ellipse cx="100" cy="190" rx="33" ry="7" fill="#9E2F57"/>
+      <ellipse cx="100" cy="190.6" rx="29.5" ry="5.2" fill="#4E2616"/>
+      ${[[82, 190, "#8B5A36", .9], [90, 187.5, "#A56C42", 1.1], [99, 186, "#7B4A2B", 1.3], [108, 187.5, "#9A6038", 1.5], [117, 190, "#8B5A36", 1.7], [95, 190.5, "#B27748", 1.95], [106, 190.5, "#7B4A2B", 2.15]]
+        .map(([x, y, c, d]) => `<circle class="kib" style="--d:${d}s" cx="${x}" cy="${y}" r="4.2" fill="${c}"/>`).join("")}
     </g>
-
     <g class="head">
       ${P.ears === "pointy" ? `
       <g class="ear-l">
@@ -862,6 +861,15 @@ function dogSvg(v = {}) {
       <path class="mouth-sad" d="M88 108 Q100 98 112 108" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" fill="none"/>
       <path class="mouth-open" d="M86 98 Q100 94 114 98 Q112 118 100 120 Q88 118 86 98Z" fill="#5A1F26"/>
       <path class="tongue" d="M92 102 Q100 126 108 102 Q100 98 92 102Z" fill="#F4708F"/>
+    </g>
+    <g class="bowl bowl-front">
+      <ellipse cx="100" cy="213.5" rx="34" ry="3.4" fill="rgba(0,0,0,.18)"/>
+      <path d="M67 190 Q100 200 133 190 L125 211 Q124 213 121 213 H79 Q76 213 75 211Z" fill="#E8497A"/>
+      <path d="M72 200 Q100 207 128 200" stroke="#fff" stroke-opacity=".32" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M68 190.6 Q100 199.4 132 190.6" stroke="#FF9DBB" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <g fill="#fff" opacity=".85"><circle cx="100" cy="204" r="2.6"/><circle cx="94" cy="201" r="1.3"/><circle cx="98" cy="199.5" r="1.3"/><circle cx="102" cy="199.5" r="1.3"/><circle cx="106" cy="201" r="1.3"/></g>
+      ${[[88, 182, -10, .95], [112, 182, 12, 1.2], [96, 180, -6, 1.5], [106, 181, 8, 1.8], [118, 184, 14, 2.05]]
+        .map(([x, y, dx, d]) => `<circle class="crumb" style="--d:${d}s;--x:${dx}px" cx="${x}" cy="${y}" r="1.7" fill="#A56C42"/>`).join("")}
     </g>
   </svg>`;
 }

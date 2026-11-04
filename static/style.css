@@ -552,3 +552,49 @@ html, body { overflow-x: hidden; }
 .week .c small { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; white-space: normal; overflow: hidden; overflow-wrap: anywhere; word-break: break-word; font-size: 12.5px; line-height: 1.3; color: var(--text); opacity: .75; padding-top: 3px; min-width: 0; }
 .week .c.e { background: transparent; min-height: 22px; padding: 2px 8px; color: var(--hint); opacity: .6; align-items: center; }
 .week .d:has(+ .c.e + .c.e) { padding-top: 2px; opacity: .6; }
+
+/* ===== кормление: миска встаёт перед псом, он жуёт, крошки летят, потом облизывается ===== */
+.dog .bowl { opacity: 0; transition: none; }
+.act-feed .dog .bowl { opacity: 0; animation: bowlLife 2.8s ease both; }
+.act-feed .dog .head { animation: dogEat 2.8s ease-in-out both; }
+.act-feed .dog .ear-l { animation: earEatL 2.8s ease-in-out both; transform: none; }
+.act-feed .dog .ear-r { animation: earEatR 2.8s ease-in-out both; transform: none; }
+.act-feed .dog .tail { animation: dogWag .3s ease-in-out infinite; }
+.act-feed .dog .body { animation: bodyEat 2.8s ease-in-out both; }
+.act-feed .dog .mouth-sad, .act-feed .dog .brows { display: none; }
+.act-feed .dog .mouth-smile { display: inline; animation: chompClosed .34s steps(1) .72s 4; }
+.act-feed .dog .mouth-open { display: inline; opacity: 0; animation: chompOpen .34s steps(1) .72s 4; }
+.act-feed .dog .tongue { display: inline; opacity: 0; transform-origin: 100px 100px; animation: lick .4s ease-in-out 2.15s 2; }
+.act-feed .dog .eyes-open { animation: eyesFeedOpen 2.8s steps(1) both; }
+.act-feed .dog .eyes-happy { display: inline; opacity: 0; animation: eyesFeedHappy 2.8s steps(1) both; }
+.dog .kib { transform-box: fill-box; transform-origin: center; animation: none; }
+.act-feed .dog .kib { animation: kibGone .22s ease-in forwards; animation-delay: var(--d); }
+.dog .crumb { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.act-feed .dog .crumb { animation: crumbFly .55s ease-out both; animation-delay: var(--d); }
+.act-feed .dog .bowl-front { transform-origin: 100px 205px; }
+
+@keyframes bowlLife { 0% { opacity: 0; transform: translateY(-16px) scale(.9); } 10% { opacity: 1; transform: translateY(2px) scale(1.02); } 14%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(4px); } }
+@keyframes dogEat {
+  0% { transform: translate(0, 0) rotate(0); }
+  12% { transform: translate(0, -2px) rotate(-3deg); }
+  26% { transform: translate(0, 70px) rotate(3deg); }
+  32%, 56% { transform: translate(0, 74px) rotate(3deg); }
+  38%, 62% { transform: translate(0, 67px) rotate(6deg); }
+  44%, 68% { transform: translate(0, 74px) rotate(2deg); }
+  50% { transform: translate(0, 67px) rotate(6deg); }
+  74% { transform: translate(0, 68px) rotate(5deg); }
+  80% { transform: translate(0, 72px) rotate(3deg); }
+  90% { transform: translate(0, 8px) rotate(-4deg); }
+  95% { transform: translate(0, 0) rotate(2deg); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+@keyframes bodyEat { 0%, 100% { transform: none; } 30%, 80% { transform: scale(1.01, .985) translateY(1px); } }
+@keyframes earEatL { 0%, 12%, 100% { transform: rotate(0); } 26% { transform: rotate(-16deg) translateY(-3px); } 38%, 62% { transform: rotate(-22deg); } 50%, 74% { transform: rotate(-12deg); } 90% { transform: rotate(6deg); } }
+@keyframes earEatR { 0%, 12%, 100% { transform: rotate(0); } 26% { transform: rotate(16deg) translateY(-3px); } 38%, 62% { transform: rotate(22deg); } 50%, 74% { transform: rotate(12deg); } 90% { transform: rotate(-6deg); } }
+@keyframes chompOpen { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes chompClosed { 0% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes lick { 0% { opacity: 0; transform: scaleY(.5); } 35%, 65% { opacity: 1; transform: scaleY(1.1) translateX(0); } 50% { transform: scaleY(1.1) translateX(5px); } 100% { opacity: 0; transform: scaleY(.5); } }
+@keyframes eyesFeedOpen { 0% { opacity: 1; } 24% { opacity: 0; } 82% { opacity: 1; } }
+@keyframes eyesFeedHappy { 0% { opacity: 0; } 24% { opacity: 1; } 82% { opacity: 0; } }
+@keyframes kibGone { to { transform: scale(0) translateY(-5px); opacity: 0; } }
+@keyframes crumbFly { 0% { opacity: 0; transform: translate(0, 0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), -13px) rotate(120deg); } }
