@@ -138,7 +138,7 @@ class Note(Base):
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime)
     read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    reaction: Mapped[str | None] = mapped_column(String(16), nullable=True)  # hug | talk | thanks
+    reaction: Mapped[str | None] = mapped_column(String(16), nullable=True)  # hug | talk | thanks | kiss | handshake
 
 
 class PetUnlock(Base):

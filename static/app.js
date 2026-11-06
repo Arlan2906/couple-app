@@ -637,8 +637,8 @@ const itemRow = (name, unlocked, hint, progress, need) => `
 
 /* ---------- Несказанное ---------- */
 const NOTE_KINDS = { thanks: "Благодарность", worry: "Переживание", talk: "Хочу обсудить", other: "Просто так" };
-const REACTIONS = { hug: "Обнять", talk: "Давай поговорим", thanks: "Спасибо, что сказал(а)" };
-const REACTED = { hug: "обнимает тебя", talk: "готов(а) поговорить", thanks: "благодарит, что поделился(лась)" };
+const REACTIONS = { hug: "Обнять", talk: "Давай поговорим", thanks: "Спасибо, что сказал(а)", kiss: "Поцеловать", handshake: "Пожать руку по-братски" };
+const REACTED = { hug: "обнимает тебя", talk: "готов(а) поговорить", thanks: "благодарит, что поделился(лась)", kiss: "целует тебя", handshake: "по-братски жмёт тебе руку" };
 
 async function renderNotes() {
   const data = await api("/api/notes");
