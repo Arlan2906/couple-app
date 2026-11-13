@@ -610,3 +610,114 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 #app { position: relative; z-index: 1; }
 @keyframes heartsRise { to { transform: translateY(-260px); } }
 @media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+
+/* ===== загрузка ===== */
+.boot-loader { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 70px 0 40px; }
+.bl-dog { width: 150px; }
+.bl-dog .dog { width: 100%; height: auto; }
+.bl-t { font-weight: 700; color: var(--hint); text-align: center; }
+
+/* ===== круглая дата ===== */
+.milestone { position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; margin: 4px 0 14px; padding: 16px; border-radius: 22px; color: #fff;
+  background: linear-gradient(135deg, #ff7aa2, #ff9a7a 55%, #ffc46b); box-shadow: 0 12px 26px rgba(255, 110, 140, .35); }
+.milestone b { display: block; font-size: 18px; font-weight: 800; position: relative; }
+.milestone small { display: block; font-size: 13px; opacity: .92; font-weight: 600; position: relative; }
+.ms-ico { position: relative; flex: none; width: 46px; height: 46px; border-radius: 15px; background: rgba(255,255,255,.28); display: flex; align-items: center; justify-content: center; }
+.ms-ico svg { width: 26px; height: 26px; fill: #fff; animation: msBeat 1.4s ease-in-out infinite; }
+.ms-confetti { position: absolute; inset: 0; pointer-events: none; }
+.ms-confetti i { position: absolute; width: 6px; height: 10px; border-radius: 2px; top: -14px; opacity: .55; animation: msFall 3.6s linear infinite; }
+.ms-confetti i:nth-child(5n+1) { background: #fff; } .ms-confetti i:nth-child(5n+2) { background: #ffe27a; } .ms-confetti i:nth-child(5n+3) { background: #c9a7ff; }
+.ms-confetti i:nth-child(5n+4) { background: #7fc8f8; } .ms-confetti i:nth-child(5n) { background: #9be08a; }
+.ms-confetti i:nth-child(1) { left: 6%; animation-delay: 0s; } .ms-confetti i:nth-child(2) { left: 14%; animation-delay: -1.2s; }
+.ms-confetti i:nth-child(3) { left: 22%; animation-delay: -2.1s; } .ms-confetti i:nth-child(4) { left: 31%; animation-delay: -.6s; }
+.ms-confetti i:nth-child(5) { left: 39%; animation-delay: -2.8s; } .ms-confetti i:nth-child(6) { left: 47%; animation-delay: -1.7s; }
+.ms-confetti i:nth-child(7) { left: 55%; animation-delay: -.3s; } .ms-confetti i:nth-child(8) { left: 62%; animation-delay: -3.1s; }
+.ms-confetti i:nth-child(9) { left: 70%; animation-delay: -1s; } .ms-confetti i:nth-child(10) { left: 77%; animation-delay: -2.4s; }
+.ms-confetti i:nth-child(11) { left: 84%; animation-delay: -.9s; } .ms-confetti i:nth-child(12) { left: 90%; animation-delay: -1.9s; }
+.ms-confetti i:nth-child(13) { left: 95%; animation-delay: -2.6s; } .ms-confetti i:nth-child(14) { left: 3%; animation-delay: -3.3s; }
+@keyframes msFall { to { transform: translateY(120px) rotate(320deg); } }
+@keyframes msBeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.18); } 30% { transform: scale(1); } 45% { transform: scale(1.12); } }
+.scene-svg .flag { animation: scFlag 2.2s ease-in-out infinite; }
+@keyframes scFlag { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+
+/* ===== ответ на настроение ===== */
+.m-replies { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.m-replies button { width: 100%; padding: 8px 6px; font-size: 13px; }
+.m-reply { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--hint); }
+.m-reply.warm { color: var(--accent); }
+
+/* ===== календарь настроения ===== */
+.cal-toggle { display: flex; align-items: center; gap: 12px; width: 100%; margin: 14px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); color: var(--text); box-shadow: var(--shadow); text-align: left; border: 0; font: inherit; }
+.cal-toggle b { display: block; font-size: 15.5px; font-weight: 800; }
+.cal-toggle small { display: block; font-size: 12.5px; color: var(--hint); font-weight: 600; }
+.ct-ico { flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+.ct-ico svg { width: 20px; height: 20px; }
+.ct-chev { flex: none; font-size: 26px; line-height: 1; color: var(--hint); transition: transform .25s; }
+.ct-chev.open { transform: rotate(90deg); }
+.cal { margin-top: 10px; padding: 12px 10px 12px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 8px; }
+.cal-head b { font-size: 16px; font-weight: 800; }
+.cal-head .icon { width: 36px; height: 36px; border-radius: 12px; font-size: 22px; background: var(--accent-soft); color: var(--accent); }
+.cal-head .icon:disabled { opacity: .3; }
+.cal-wd, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-wd span { text-align: center; font-size: 11.5px; font-weight: 800; color: var(--hint); padding-bottom: 4px; }
+.cd { position: relative; aspect-ratio: 1 / 1.08; min-width: 0; padding: 3px 2px; border-radius: 11px; border: 0; background: rgba(150,130,160,.07); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: space-between; font: inherit; }
+.cd.blank { background: none; }
+.cd .n { font-size: 11px; font-weight: 800; color: var(--hint); line-height: 1; padding-top: 2px; }
+.cd .es { display: flex; gap: 1px; font-size: clamp(12px, 3.6vw, 17px); line-height: 1; min-height: 1.1em; padding-bottom: 3px; }
+.cd .es i { font-style: normal; }
+.cd.has { background: #fff2f6; box-shadow: inset 0 0 0 1px rgba(255, 92, 138, .18); }
+.cd.today { box-shadow: inset 0 0 0 2px var(--accent); }
+.cd.today .n { color: var(--accent); }
+.cd.future { opacity: .4; }
+.cd:disabled { cursor: default; }
+.cal-legend { margin-top: 10px; font-size: 12.5px; color: var(--hint); font-weight: 600; text-align: center; }
+.day-mood { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid rgba(150,120,130,.14); }
+.day-mood:last-of-type { border-bottom: 0; }
+.dm-em { flex: none; font-size: 34px; line-height: 1; }
+.day-mood .muted { overflow-wrap: anywhere; margin-top: 2px; }
+
+/* ===== прогулка ===== */
+.walk-btn { display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0 2px; padding: 14px 16px; border: 0; border-radius: 18px; font: inherit; text-align: left; color: #fff;
+  background: linear-gradient(135deg, #6fcf97, #2fb67c); box-shadow: 0 8px 18px rgba(47, 182, 124, .3); }
+.walk-btn b { display: block; font-size: 16px; font-weight: 800; }
+.walk-btn small { display: block; font-size: 12.5px; font-weight: 600; opacity: .92; }
+.wk-ico { flex: none; width: 40px; height: 40px; border-radius: 13px; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; }
+.wk-ico svg { width: 22px; height: 22px; }
+.wk-go { font-size: 26px; line-height: 1; opacity: .9; }
+.walk-btn.wk-invited { background: linear-gradient(135deg, #ff9a7a, #ff5c8a); box-shadow: 0 8px 18px rgba(255, 92, 138, .35); animation: wkPulse 1.6s ease-in-out infinite; }
+.walk-btn:disabled { background: var(--card); color: var(--text); box-shadow: var(--shadow); opacity: 1; }
+.walk-btn:disabled .wk-ico { background: rgba(47,182,124,.13); color: var(--ok); }
+.walk-btn:disabled small { color: var(--hint); opacity: 1; }
+@keyframes wkPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+.act-walk { animation: walkHop .45s ease-in-out 4 !important; }
+@keyframes walkHop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-16px) rotate(-3deg); } }
+.act-walk .dog .tail { animation-duration: .2s !important; }
+
+/* ===== сон ===== */
+.pet-card.st-sleep { background: radial-gradient(120% 90% at 80% 0%, #8c86d8 0%, rgba(140,134,216,0) 55%), linear-gradient(165deg, #2f3a7a, #5b4b9e 60%, #8a6bb8); box-shadow: 0 14px 34px rgba(50, 40, 120, .35), inset 0 1px 0 rgba(255,255,255,.25); }
+.st-sleep .pet-emoji { animation: sleepBreath 3.6s ease-in-out infinite; }
+.st-sleep .pet-emoji.dogwrap { animation: sleepBreath 3.6s ease-in-out infinite; }
+.st-sleep .dog .eyes-open, .dogwrap.st-sleep .dog .eyes-open { display: none; }
+.st-sleep .dog .eyes-happy, .dogwrap.st-sleep .dog .eyes-happy { display: inline; transform: scaleY(-1); transform-origin: 100px 62px; }
+.st-sleep .dog .tail, .dogwrap.st-sleep .dog .tail { animation: none; transform: rotate(40deg); }
+.st-sleep .dog .head, .dogwrap.st-sleep .dog .head { animation: none; transform: rotate(-9deg) translateY(6px); }
+.st-sleep .dog .ear-l, .dogwrap.st-sleep .dog .ear-l { animation: none; transform: rotate(-8deg); }
+.st-sleep .dog .ear-r, .dogwrap.st-sleep .dog .ear-r { animation: none; transform: rotate(8deg); }
+.st-sleep .dog .mouth-smile, .dogwrap.st-sleep .dog .mouth-smile { opacity: .6; }
+@keyframes sleepBreath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.025, 1.012); } }
+.zzz { position: absolute; left: 58%; top: 18px; z-index: 3; pointer-events: none; font-weight: 800; color: #fff; }
+.zzz i { position: absolute; font-style: normal; opacity: 0; animation: zFloat 3s ease-in-out infinite; text-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.zzz i:nth-child(1) { font-size: 16px; animation-delay: 0s; } .zzz i:nth-child(2) { font-size: 21px; animation-delay: 1s; } .zzz i:nth-child(3) { font-size: 27px; animation-delay: 2s; }
+.zzz.sm { left: 64%; top: -6px; } .zzz.sm i { font-size: 10px !important; color: #6b6fa8; }
+@keyframes zFloat { 0% { opacity: 0; transform: translate(0, 20px) rotate(-10deg); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(26px, -26px) rotate(10deg); } }
+
+/* ===== переживает ===== */
+.pet-card.st-worried { background: radial-gradient(120% 90% at 20% 0%, #e7d9ff 0%, rgba(231,217,255,0) 55%), linear-gradient(165deg, #9aa8d8, #c3a6d8 60%, #e9a6c3); }
+.st-worried .dog .brows, .dogwrap.st-worried .dog .brows { display: inline; }
+.st-worried .dog .mouth-smile, .dogwrap.st-worried .dog .mouth-smile { display: none; }
+.st-worried .dog .mouth-sad, .dogwrap.st-worried .dog .mouth-sad { display: inline; }
+.st-worried .dog .ear-l, .dogwrap.st-worried .dog .ear-l { animation: none; transform: rotate(-12deg); }
+.st-worried .dog .ear-r, .dogwrap.st-worried .dog .ear-r { animation: none; transform: rotate(12deg); }
+.st-worried .dog .head, .dogwrap.st-worried .dog .head { animation: dogSadHead 4s ease-in-out infinite; }
+.st-worried .dog .tail, .dogwrap.st-worried .dog .tail { animation-duration: 1.8s; }

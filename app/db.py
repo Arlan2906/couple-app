@@ -1,11 +1,14 @@
+import logging
 from datetime import date, datetime
 
 from sqlalchemy import (BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Integer,
-                        String, Text, UniqueConstraint, func)
+                        String, Text, UniqueConstraint, func, inspect, text)
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .config import BASE_DIR, DATABASE_URL, DB_SSL
+
+log = logging.getLogger("db")
 
 if DATABASE_URL.startswith("sqlite"):
     (BASE_DIR / "data").mkdir(exist_ok=True)
@@ -70,6 +73,7 @@ class Mood(Base):
     day: Mapped[date] = mapped_column(Date)
     emoji: Mapped[str] = mapped_column(String(16))
     note: Mapped[str] = mapped_column(String(300), default="")
+    reaction: Mapped[str | None] = mapped_column(String(16), nullable=True)  # ответ партнёра: hug | call | soon
 
 
 class Goal(Base):
@@ -148,6 +152,7 @@ class PetUnlock(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
     item_id: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now(), nullable=True)
 
 
 class SentLog(Base):
@@ -157,9 +162,43 @@ class SentLog(Base):
     sent_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+def _literal(value, dialect: str) -> str | None:
+    if isinstance(value, bool):
+        return ("TRUE" if value else "FALSE") if dialect == "postgresql" else ("1" if value else "0")
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        return "'" + value.replace("'", "''") + "'"
+    return None
+
+
+def _add_missing_columns(conn) -> None:
+    """create_all не меняет уже существующие таблицы. Когда в модели появляется новое поле,
+    добавляем колонку сами — без ручного ALTER TABLE в консоли Neon."""
+    insp = inspect(conn)
+    dialect = conn.dialect.name
+    for table in Base.metadata.sorted_tables:
+        if not insp.has_table(table.name):
+            continue
+        have = {c["name"] for c in insp.get_columns(table.name)}
+        for col in table.columns:
+            if col.name in have:
+                continue
+            ddl = f'ALTER TABLE {table.name} ADD COLUMN {col.name} {col.type.compile(dialect=conn.dialect)}'
+            if col.default is not None and getattr(col.default, "is_scalar", False):
+                lit = _literal(col.default.arg, dialect)
+                if lit is not None:
+                    ddl += f" DEFAULT {lit}"
+            elif col.server_default is not None and dialect == "postgresql":
+                ddl += " DEFAULT CURRENT_TIMESTAMP"  # в SQLite нельзя добавить колонку с таким умолчанием
+            conn.execute(text(ddl))
+            log.info("Миграция: %s", ddl)
+
+
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)
 
 
 async def get_session():

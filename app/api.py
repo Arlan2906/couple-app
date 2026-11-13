@@ -8,11 +8,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 
 from . import config
-from .bot import bot, load_photo, notify, store_photo
+from .bot import MOOD_REPLIES, apply_mood_reply, bot, load_photo, mood_reply_rows, notify, store_photo
 from .db import (AsyncSession, BucketItem, Couple, Deposit, Goal, Moment, Mood, User, Wish,
                  get_session)
 from .auth import current_user, paired_user
-from .pet import award
+from .pet import SAD_MOODS, award, get_pet, stage_for
+from .dates import milestone
 
 router = APIRouter(prefix="/api")
 TZ = ZoneInfo(config.TIMEZONE)
@@ -78,6 +79,7 @@ async def me(user: User = Depends(current_user), s: AsyncSession = Depends(get_s
             "started_time": couple.started_time,
             "tz_offset_min": int(datetime.now(TZ).utcoffset().total_seconds() // 60),
             "days_together": (today() - started).days + 1 if started else None,
+            "milestone": milestone(started, today()),
             "invite_link": f"https://t.me/{username}?start=join_{couple.code}" if username else None,
         } if couple else None,
     }
@@ -266,23 +268,40 @@ class MoodIn(BaseModel):
     note: str = Field("", max_length=300)
 
 
+def mood_out(m: Mood | None) -> dict | None:
+    return {"id": m.id, "emoji": m.emoji, "note": m.note, "reaction": m.reaction} if m else None
+
+
 @router.get("/moods")
 async def moods_list(user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
-    since = today() - timedelta(days=13)
-    rows = (await s.execute(select(Mood).where(Mood.couple_id == user.couple_id, Mood.day >= since))).scalars().all()
+    d = today()
+    rows = (await s.execute(select(Mood).where(Mood.couple_id == user.couple_id, Mood.day == d))).scalars().all()
     partner = await partner_of(s, user)
-    by = {(m.user_id, m.day): m for m in rows}
-    days = []
-    for i in range(14):
-        d = today() - timedelta(days=i)
-        me_m = by.get((user.id, d))
-        p_m = by.get((partner.id, d)) if partner else None
-        days.append({
-            "day": d.isoformat(),
-            "me": {"emoji": me_m.emoji, "note": me_m.note} if me_m else None,
-            "partner": {"emoji": p_m.emoji, "note": p_m.note} if p_m else None,
-        })
-    return {"today": today().isoformat(), "days": days}
+    by = {m.user_id: m for m in rows}
+    return {"today": d.isoformat(), "me": mood_out(by.get(user.id)),
+            "partner": mood_out(by.get(partner.id)) if partner else None,
+            "replies": {k: v[0] for k, v in MOOD_REPLIES.items()},
+            "replied": {k: v[1] for k, v in MOOD_REPLIES.items()}}
+
+
+@router.get("/moods/month")
+async def moods_month(m: str, user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
+    """Календарь настроения: все отметки пары за месяц (m = YYYY-MM)."""
+    try:
+        y, mo = map(int, m.split("-"))
+        first = date(y, mo, 1)
+    except ValueError:
+        raise HTTPException(400, "m = YYYY-MM")
+    nxt = date(y + (mo == 12), mo % 12 + 1, 1)
+    rows = (await s.execute(select(Mood).where(Mood.couple_id == user.couple_id, Mood.day >= first,
+                                               Mood.day < nxt))).scalars().all()
+    partner = await partner_of(s, user)
+    days: dict[str, dict] = {}
+    for r in rows:
+        who = "me" if r.user_id == user.id else "partner" if partner and r.user_id == partner.id else None
+        if who:
+            days.setdefault(r.day.isoformat(), {"me": None, "partner": None})[who] = mood_out(r)
+    return {"month": f"{y:04d}-{mo:02d}", "today": today().isoformat(), "days": days}
 
 
 @router.put("/moods/today")
@@ -294,6 +313,8 @@ async def moods_set(body: MoodIn, user: User = Depends(paired_user), s: AsyncSes
         m = Mood(couple_id=user.couple_id, user_id=user.id, day=d, emoji=body.emoji, note=body.note.strip())
         s.add(m)
     else:
+        if m.emoji != body.emoji:
+            m.reaction = None  # настроение поменялось — прошлый ответ уже не про него
         m.emoji, m.note = body.emoji, body.note.strip()
     await s.commit()
     note = f": «{m.note}»" if m.note else ""
@@ -302,7 +323,25 @@ async def moods_set(body: MoodIn, user: User = Depends(paired_user), s: AsyncSes
         partner = await partner_of(s, user)
         if partner and (await s.execute(select(Mood.id).where(Mood.user_id == partner.id, Mood.day == d))).first():
             await award(s, user.couple_id, "mood_both")
-    await ping_partner(s, user, f"Настроение {user.name} сегодня: {m.emoji}{note}")
+    partner = await partner_of(s, user)
+    if partner:
+        text = f"Настроение {user.name} сегодня: {m.emoji}{note}"
+        pet = await get_pet(s, user.couple_id)
+        if m.emoji in SAD_MOODS and pet and stage_for(pet.xp) != "egg":
+            text += f"\n\n{pet.name} переживает — поддержи {user.name}"
+        await notify(partner.id, text, tab="mood", rows=mood_reply_rows(m.id))
+    return {"ok": True}
+
+
+class ReplyIn(BaseModel):
+    reaction: str
+
+
+@router.post("/moods/{mood_id}/react")
+async def moods_react(mood_id: int, body: ReplyIn, user: User = Depends(paired_user)):
+    err = await apply_mood_reply(mood_id, user.id, body.reaction)
+    if err:
+        raise HTTPException(400, err)
     return {"ok": True}
 
 

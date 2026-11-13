@@ -441,7 +441,17 @@ const SCENE = (() => {
   function render(roomId, ctx) {
     const night = roomId === "attic" ? true : ctx.night;
     const fn = ROOMS[roomId] || living;
-    return `<svg class="scene-svg ${night ? "is-night" : ""}" viewBox="0 0 360 230" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img">${common}${fn({ ...ctx, night })}</svg>`;
+    const flags = ctx.festive ? (() => {
+      const cols = ["#FF6F9C", "#FFC94D", "#7FC8F8", "#9BE08A", "#C9A7FF"];
+      const yAt = (x) => 6 + 20 * Math.sin(Math.PI * ((x % 180) / 180));
+      let out = `<path d="M0 6 Q90 46 180 6 Q270 46 360 6" fill="none" stroke="#7a5a50" stroke-width="1.2"/>`;
+      for (let x = 12, i = 0; x < 360; x += 22, i++) {
+        const y = yAt(x);
+        out += `<path class="flag" style="animation-delay:${(i % 5) * .2}s;transform-origin:${x}px ${y.toFixed(1)}px" d="M${x - 7} ${y.toFixed(1)} L${x + 7} ${y.toFixed(1)} L${x} ${(y + 15).toFixed(1)}Z" fill="${cols[i % cols.length]}"/>`;
+      }
+      return `<g class="bunting">${out}</g>`;
+    })() : "";
+    return `<svg class="scene-svg ${night ? "is-night" : ""}" viewBox="0 0 360 230" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img">${common}${fn({ ...ctx, night })}${flags}</svg>`;
   }
 
   return { render };

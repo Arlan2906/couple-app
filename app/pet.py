@@ -6,15 +6,17 @@
 Питомец никогда не умирает — только грустит, если про него забыли.
 """
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
+from . import config
 from .auth import paired_user
 from .bot import notify
-from .db import AsyncSession, Pet, PetAction, User, get_session
+from .db import AsyncSession, Mood, Pet, PetAction, User, get_session
 
 router = APIRouter(prefix="/api/pet")
 
@@ -40,7 +42,14 @@ REWARDS = {
     "bucket_add": (0, 5, 5),
     "bucket_done": (10, 30, 40),
     "note": (0, 8, 10),
+    "mood_reply": (0, 6, 4),     # ответили на настроение партнёра
 }
+TZ = ZoneInfo(config.TIMEZONE)
+SLEEP_FROM, SLEEP_TO = 23, 7      # ночью питомец спит (по Алматы)
+SAD_MOODS = {"😔", "😢", "😤", "🤒", "🤯", "🫠"}
+WALK_WAIT = 60 * 60               # сколько ждём, пока второй подтвердит прогулку
+WALK_COOLDOWN = 6 * 3600          # прогулка — раз в 6 часов на пару
+WALK_REWARD = (5, 25, 20)         # сытость, радость, опыт
 
 
 def utcnow() -> datetime:
@@ -71,13 +80,29 @@ def apply_decay(pet: Pet, now: datetime) -> None:
     pet.updated_at = now
 
 
-def status_for(pet: Pet) -> tuple[str, str]:
+def is_night(now_local: datetime | None = None) -> bool:
+    h = (now_local or datetime.now(TZ)).hour
+    return h >= SLEEP_FROM or h < SLEEP_TO
+
+
+def status_for(pet: Pet, viewer: User | None = None, sad: list[tuple[User, Mood]] | None = None,
+               night: bool = False) -> tuple[str, str]:
+    """sad — грустные настроения за сегодня, на которые второй ещё не ответил."""
     if stage_for(pet.xp) == "egg":
         return "egg", "Тёплое яйцо. Кажется, внутри кто-то шевелится…"
     if pet.food < 10 and pet.joy < 10:
         return "sad", "Совсем загрустил и проголодался"
     if pet.food < 25:
         return "hungry", "Урчит животик — покормите!"
+    if night:
+        return "sleep", "Спит. Тише, не разбудите"
+    if sad:
+        if len(sad) > 1:
+            return "worried", "Переживает за вас обоих. Обнимитесь"
+        who, _m = sad[0]
+        if viewer and who.id == viewer.id:
+            return "worried", "Видит, что тебе сегодня нелегко, и жмётся рядом"
+        return "worried", f"Переживает: {who.name} сегодня не очень. Напиши, обними"
     if pet.joy < 25:
         return "bored", "Скучает по вам. Погладьте!"
     if pet.food > 70 and pet.joy > 70:
@@ -138,10 +163,23 @@ async def hungry_line(s: AsyncSession, couple_id: int) -> str:
     return ""
 
 
-def pet_out(pet: Pet, user: User, actions: list[PetAction], names: dict) -> dict:
+def walk_state(actions: list[PetAction], user: User, names: dict, now: datetime) -> dict:
+    last_walk = next((x for x in actions if x.action == "walk"), None)
+    if last_walk and (now - last_walk.at).total_seconds() < WALK_COOLDOWN:
+        return {"state": "cooldown", "mins": int((WALK_COOLDOWN - (now - last_walk.at).total_seconds()) // 60) + 1}
+    call = next((x for x in actions if x.action == "walk_call"), None)
+    if call and (now - call.at).total_seconds() < WALK_WAIT and (not last_walk or last_walk.at < call.at):
+        mins = int((WALK_WAIT - (now - call.at).total_seconds()) // 60) + 1
+        if call.user_id == user.id:
+            return {"state": "waiting", "mins": mins}
+        return {"state": "invited", "mins": mins, "by": names.get(call.user_id, "?")}
+    return {"state": "ready"}
+
+
+def pet_out(pet: Pet, user: User, actions: list[PetAction], names: dict, ctx: dict | None = None) -> dict:
     now = utcnow()
     lvl = level_for(pet.xp)
-    code, text = status_for(pet)
+    code, text = status_for(pet, user, **(ctx or {}))
     cooldowns = {}
     for a, (cd, *_rest) in ACTIONS.items():
         last = next((x.at for x in actions if x.user_id == user.id and x.action == a), None)
@@ -153,6 +191,7 @@ def pet_out(pet: Pet, user: User, actions: list[PetAction], names: dict) -> dict
         "stage": stage_for(pet.xp), "hatch_xp": HATCH_XP,
         "status": code, "status_text": text,
         "cooldowns": cooldowns,
+        "walk": walk_state(actions, user, names, now),
         "log": [{"who": names.get(x.user_id, "?"), "action": x.action,
                  "ago_min": int((now - x.at).total_seconds() // 60)} for x in actions[:6]],
         "age_days": (now - pet.created_at).days if pet.created_at else 0,
@@ -167,8 +206,18 @@ async def load(s: AsyncSession, user: User) -> dict:
     await s.commit()
     actions = (await s.execute(select(PetAction).where(PetAction.pet_id == pet.id)
                                .order_by(PetAction.at.desc()).limit(30))).scalars().all()
-    names = {m.id: m.name for m in await members(s, user.couple_id)}
-    return {"pet": pet_out(pet, user, actions, names), "kinds": KINDS}
+    mem = await members(s, user.couple_id)
+    names = {m.id: m.name for m in mem}
+    return {"pet": pet_out(pet, user, actions, names, await mood_ctx(s, user.couple_id, mem)), "kinds": KINDS}
+
+
+async def mood_ctx(s: AsyncSession, couple_id: int, mem: list[User]) -> dict:
+    """Ночь и грустные настроения за сегодня без ответа — от них зависит, как ведёт себя питомец."""
+    now_local = datetime.now(TZ)
+    rows = (await s.execute(select(Mood).where(Mood.couple_id == couple_id, Mood.day == now_local.date()))).scalars().all()
+    by_id = {m.id: m for m in mem}
+    sad = [(by_id[m.user_id], m) for m in rows if m.emoji in SAD_MOODS and not m.reaction and m.user_id in by_id]
+    return {"sad": sad, "night": is_night(now_local)}
 
 
 @router.get("")
@@ -211,6 +260,40 @@ async def pet_rename(body: RenameIn, user: User = Depends(paired_user), s: Async
     pet.name = body.name.strip()
     await s.commit()
     return await load(s, user)
+
+
+@router.post("/walk")
+async def pet_walk(user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
+    """Совместная прогулка: один зовёт, второй подтверждает в течение часа."""
+    pet = await get_pet(s, user.couple_id)
+    if not pet:
+        raise HTTPException(404, "Сначала заведите питомца")
+    if stage_for(pet.xp) == "egg":
+        raise HTTPException(400, "Яйцо гулять не умеет")
+    actions = (await s.execute(select(PetAction).where(PetAction.pet_id == pet.id)
+                               .order_by(PetAction.at.desc()).limit(30))).scalars().all()
+    mem = await members(s, user.couple_id)
+    names = {m.id: m.name for m in mem}
+    st = walk_state(actions, user, names, utcnow())
+    if st["state"] == "cooldown":
+        raise HTTPException(429, f"{pet.name} ещё отдыхает после прогулки")
+    if st["state"] == "waiting":
+        raise HTTPException(409, "Ты уже позвал(а) — ждём ответа")
+    others = [m for m in mem if m.id != user.id]
+    if st["state"] == "invited":
+        caller = next((x.user_id for x in actions if x.action == "walk_call"), None)
+        s.add(PetAction(pet_id=pet.id, user_id=user.id, action="walk", at=utcnow()))
+        await _gain(s, pet, *WALK_REWARD)
+        if caller:
+            await notify(caller, f"{user.name} пришёл(ла) — вы погуляли с {pet.name}! +{WALK_REWARD[1]} радости",
+                         button="Посмотреть", tab="pet")
+        return {**await load(s, user), "walked": True}
+    s.add(PetAction(pet_id=pet.id, user_id=user.id, action="walk_call", at=utcnow()))
+    await s.commit()
+    for m in others:
+        await notify(m.id, f"{user.name} зовёт гулять с {pet.name}. Подтверди в течение часа — "
+                           f"погуляете вместе, и {pet.name} будет счастлив", button="Идём гулять", tab="pet")
+    return {**await load(s, user), "called": True}
 
 
 @router.post("/{action}")

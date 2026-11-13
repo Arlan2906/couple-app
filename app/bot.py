@@ -5,12 +5,12 @@ from collections import OrderedDict
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandObject, CommandStart
-from aiogram.types import (BufferedInputFile, InlineKeyboardButton, InlineKeyboardMarkup,
+from aiogram.types import (BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup,
                            MenuButtonWebApp, Message, WebAppInfo)
 from sqlalchemy import select
 
 from . import config
-from .db import Couple, Session, User
+from .db import Couple, Mood, Session, User
 
 log = logging.getLogger("bot")
 
@@ -56,6 +56,56 @@ async def on_start(message: Message, command: CommandObject):
     await message.answer(text, reply_markup=open_app_kb())
 
 
+# ---------- ответ на настроение партнёра ----------
+MOOD_REPLIES = {
+    "hug": ("Обнять", "обнимает тебя"),
+    "call": ("Позвоню вечером", "позвонит тебе вечером"),
+    "soon": ("Скоро увидимся", "говорит: скоро увидимся"),
+}
+
+
+def mood_reply_rows(mood_id: int) -> list[list[InlineKeyboardButton]]:
+    btns = [InlineKeyboardButton(text=t, callback_data=f"mr:{mood_id}:{k}") for k, (t, _) in MOOD_REPLIES.items()]
+    return [btns[:2], btns[2:]]
+
+
+async def apply_mood_reply(mood_id: int, user_id: int, kind: str) -> str | None:
+    """Сохранить ответ на настроение и сообщить автору. Возвращает текст ошибки или None."""
+    if kind not in MOOD_REPLIES:
+        return "Неизвестный ответ"
+    async with Session() as s:
+        mood = await s.get(Mood, mood_id)
+        user = await s.get(User, user_id)
+        if not mood or not user or user.couple_id != mood.couple_id or mood.user_id == user.id:
+            return "Это настроение не для тебя"
+        same = mood.reaction == kind
+        mood.reaction = kind
+        await s.commit()
+        if not same:
+            from .pet import award  # локально: pet импортирует bot
+            await award(s, user.couple_id, "mood_reply")
+    if not same:
+        await notify(mood.user_id, f"{user.name} {MOOD_REPLIES[kind][1]}", tab="mood")
+    return None
+
+
+@dp.callback_query(F.data.startswith("mr:"))
+async def on_mood_reply(cb: CallbackQuery):
+    try:
+        _, mid, kind = cb.data.split(":")
+        err = await apply_mood_reply(int(mid), cb.from_user.id, kind)
+    except ValueError:
+        err = "Не получилось"
+    if err:
+        return await cb.answer(err, show_alert=True)
+    await cb.answer("Отправлено")
+    try:
+        await cb.message.edit_text(f"{cb.message.text}\n\nТы ответил(а): {MOOD_REPLIES[kind][0]}",
+                                   reply_markup=open_app_kb(tab="mood"))
+    except Exception:
+        pass
+
+
 @dp.message(F.text)
 async def fallback(message: Message):
     await message.answer("Всё живёт в приложении", reply_markup=open_app_kb())
@@ -69,12 +119,16 @@ async def setup_bot() -> None:
     )
 
 
-async def notify(user_id: int, text: str, button: str = "Открыть", tab: str | None = None) -> None:
+async def notify(user_id: int, text: str, button: str = "Открыть", tab: str | None = None,
+                 rows: list[list[InlineKeyboardButton]] | None = None) -> None:
     if not bot:
         log.info("notify %s: %s", user_id, text)
         return
+    kb = open_app_kb(button, tab)
+    if rows:
+        kb = InlineKeyboardMarkup(inline_keyboard=rows + (kb.inline_keyboard if kb else []))
     try:
-        await bot.send_message(user_id, text, reply_markup=open_app_kb(button, tab))
+        await bot.send_message(user_id, text, reply_markup=kb)
     except Exception as e:  # партнёр мог не нажать /start или заблокировать бота
         log.warning("notify failed for %s: %s", user_id, e)
 

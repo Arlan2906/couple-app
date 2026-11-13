@@ -66,6 +66,14 @@ function openSheet(html, onSubmit) {
   };
   setTimeout(() => form.querySelector("input,textarea")?.focus(), 250);
 }
+function openInfo(html) {
+  const sheet = $("#sheet"), body = $(".sheet-body", sheet);
+  body.innerHTML = `${html}<div class="actions"><button type="button" data-close>Закрыть</button></div>`;
+  sheet.hidden = false;
+  const close = () => (sheet.hidden = true);
+  $(".sheet-backdrop", sheet).onclick = close;
+  $("[data-close]", body).onclick = close;
+}
 const confirmAsk = (text) => new Promise((res) => (tg?.isVersionAtLeast?.("6.2") ? tg.showConfirm(text, res) : res(confirm(text))));
 
 function fab(onClick) {
@@ -76,7 +84,9 @@ function fab(onClick) {
 
 /* ---------- старт ---------- */
 async function boot() {
-  try { state.me = await api("/api/me"); }
+  view.innerHTML = `<div class="boot-loader"><div class="bl-dog">${dogSvg()}</div><div class="bl-t" id="blText">Секунду…</div></div>`;
+  const slow = setTimeout(() => { const t = $("#blText"); if (t) t.textContent = "Будим сервер — иногда это до минуты"; }, 3500);
+  try { state.me = await api("/api/me"); clearTimeout(slow); }
   catch { view.innerHTML = `<div class="empty">Открой приложение через бота в Telegram</div>`; return; }
   document.title = state.me.title;
   $("#title").textContent = state.me.title;
@@ -252,7 +262,9 @@ async function renderUs() {
        <div class="ticker" id="ticker">${TICK_UNITS.map((u) => `<div><b data-u="${u[0]}">0</b><span data-l="${u[0]}"></span></div>`).join("")}</div>
        <button class="small" id="setDate">Изменить дату</button>`
     : `<div class="lbl" style="font-size:17px">С какого дня вы вместе?</div><button class="small" id="setDate">Указать дату</button>`;
+  const ms = c.milestone;
   view.innerHTML = `
+    ${ms ? `<div class="milestone"><div class="ms-confetti">${"<i></i>".repeat(14)}</div><span class="ms-ico">${ICO.joy}</span><div><b>${esc(ms.text)}</b><small>С праздником вас. Сегодня и дом питомца нарядный</small></div></div>` : ""}
     <div class="hero">${hero}</div>
     <button class="story-btn" id="story"><span class="sb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9.5 4.5 2.5-4.5 2.5z" fill="currentColor"/></svg></span><span class="grow"><b>Наш мультик</b><small>История о нас в 16 сценах</small></span><span class="sb-go">›</span></button>
     <h2>Наши моменты <small>${items.length || ""}</small></h2>
@@ -340,11 +352,19 @@ function wishCard(w, mine) {
 /* ---------- Настроение ---------- */
 const MOODS = ["🥰", "😊", "🙂", "😐", "😔", "😢", "😤", "😴", "🤒", "🥳", "🤯", "🫠"];
 
+const moodCal = { open: false, month: null };
+const MONTHS_FULL = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+const CAL_ICO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>`;
+
 async function renderMood() {
   const data = await api("/api/moods");
-  const t = data.days[0];
   const p = state.me.partner.name;
-  const mine = t.me;
+  const mine = data.me, theirs = data.partner;
+  const replyBox = theirs
+    ? theirs.reaction
+      ? `<div class="m-reply">Ты ответил(а): ${esc(data.replies[theirs.reaction] || "")}</div>`
+      : `<div class="m-replies">${Object.entries(data.replies).map(([k, v]) => `<button class="small ghost" data-reply="${k}">${v}</button>`).join("")}</div>`
+    : "";
   view.innerHTML = `
     <h2>Как ты сегодня?</h2>
     <div class="card">
@@ -353,14 +373,12 @@ async function renderMood() {
       <div class="row"><input id="note" maxlength="300" value="${esc(mine?.note || "")}" placeholder="Устал(а) после смены…"><button id="save">${mine ? "Обновить" : "Отметить"}</button></div>
     </div>
     <div class="today-pair">
-      <div class="card"><div class="muted">Ты</div><div class="em">${mine ? mine.emoji : "·"}</div><div class="muted">${esc(mine?.note || "")}</div></div>
-      <div class="card"><div class="muted">${esc(p)}</div><div class="em">${t.partner ? t.partner.emoji : "·"}</div><div class="muted">${t.partner ? esc(t.partner.note) : "ещё не отметил(а)"}</div></div>
+      <div class="card"><div class="muted">Ты</div><div class="em">${mine ? mine.emoji : "·"}</div><div class="muted">${esc(mine?.note || "")}</div>
+        ${mine?.reaction ? `<div class="m-reply warm">${esc(p)} ${esc(data.replied[mine.reaction] || "")}</div>` : ""}</div>
+      <div class="card"><div class="muted">${esc(p)}</div><div class="em">${theirs ? theirs.emoji : "·"}</div><div class="muted">${theirs ? esc(theirs.note) : "ещё не отметил(а)"}</div>${replyBox}</div>
     </div>
-    <h2>Последние 2 недели</h2>
-    <div class="card week">
-      <span></span><span class="head">Ты</span><span class="head">${esc(p)}</span>
-      ${data.days.slice(1).map((d) => `<span class="d">${shortDate(d.day)}</span>${cell(d.me)}${cell(d.partner)}`).join("")}
-    </div>`;
+    <button class="cal-toggle" id="calToggle"><span class="ct-ico">${CAL_ICO}</span><span class="grow"><b>История настроения</b><small>Календарь: что было и когда</small></span><span class="ct-chev ${moodCal.open ? "open" : ""}">›</span></button>
+    <div id="cal" class="card cal" ${moodCal.open ? "" : "hidden"}></div>`;
   let picked = mine?.emoji;
   view.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => {
     picked = b.dataset.e; haptic();
@@ -371,10 +389,61 @@ async function renderMood() {
     await api("/api/moods/today", { method: "PUT", json: { emoji: picked, note: $("#note").value } });
     success(); toast(`${p} увидит`); render();
   };
+  view.querySelectorAll("[data-reply]").forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    try {
+      await api(`/api/moods/${theirs.id}/react`, { method: "POST", json: { reaction: b.dataset.reply } });
+      success(); toast(`${p} получит`); render();
+    } catch { b.disabled = false; }
+  }));
+  $("#calToggle").onclick = () => {
+    haptic(); moodCal.open = !moodCal.open;
+    $("#cal").hidden = !moodCal.open;
+    $(".ct-chev").classList.toggle("open", moodCal.open);
+    if (moodCal.open) drawCal(data);
+  };
+  if (moodCal.open) drawCal(data);
 }
-const cell = (m) => m
-  ? `<div class="c"><span class="ce">${m.emoji}</span>${m.note ? `<small>${esc(m.note)}</small>` : ""}</div>`
-  : `<div class="c e">·</div>`;
+
+async function drawCal(moodData) {
+  const box = $("#cal");
+  if (!box) return;
+  const today = moodData.today, p = state.me.partner.name;
+  moodCal.month ||= today.slice(0, 7);
+  const cur = moodCal.month;
+  const data = await api(`/api/moods/month?m=${cur}`);
+  if (moodCal.month !== cur || !$("#cal")) return;
+  const [y, m] = cur.split("-").map(Number);
+  const daysIn = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const offset = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
+  const pad = (n) => String(n).padStart(2, "0");
+  const shift = (k) => { const d = new Date(Date.UTC(y, m - 1 + k, 1)); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`; };
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push(`<span class="cd blank"></span>`);
+  for (let d = 1; d <= daysIn; d++) {
+    const iso = `${cur}-${pad(d)}`, e = data.days[iso];
+    cells.push(`<button class="cd ${iso === today ? "today" : ""} ${e ? "has" : ""} ${iso > today ? "future" : ""}" data-day="${iso}" ${e ? "" : "disabled"}>
+      <span class="n">${d}</span><span class="es"><i>${e?.me?.emoji || ""}</i><i>${e?.partner?.emoji || ""}</i></span></button>`);
+  }
+  const marked = Object.keys(data.days).length;
+  box.innerHTML = `
+    <div class="cal-head"><button class="icon" data-mv="-1">‹</button><b>${MONTHS_FULL[m - 1]} ${y}</b><button class="icon" data-mv="1" ${cur >= today.slice(0, 7) ? "disabled" : ""}>›</button></div>
+    <div class="cal-wd">${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((w) => `<span>${w}</span>`).join("")}</div>
+    <div class="cal-grid">${cells.join("")}</div>
+    <div class="cal-legend">${marked ? `В клетке: слева ты, справа ${esc(p)}. Нажми на день — покажу подробности` : "В этом месяце отметок нет"}</div>`;
+  box.querySelectorAll("[data-mv]").forEach((b) => (b.onclick = () => { haptic(); moodCal.month = shift(Number(b.dataset.mv)); drawCal(moodData); }));
+  box.querySelectorAll("[data-day]").forEach((b) => (b.onclick = () => {
+    haptic();
+    const e = data.days[b.dataset.day];
+    const part = (who, x, other) => `
+      <div class="day-mood">
+        <div class="dm-em">${x ? x.emoji : "·"}</div>
+        <div class="grow"><b>${esc(who)}</b><div class="muted">${x ? (x.note ? esc(x.note) : "без слов") : "не отметил(а)"}</div>
+        ${x?.reaction ? `<div class="m-reply warm">${esc(other)} ${esc(moodData.replied[x.reaction] || "")}</div>` : ""}</div>
+      </div>`;
+    openInfo(`<h3>${fmtDate(b.dataset.day)}</h3>${part("Ты", e.me, p)}${part(p, e.partner, "Ты")}`);
+  }));
+}
 
 /* ---------- Копилка ---------- */
 async function renderGoals() {
@@ -448,7 +517,7 @@ const bucketCard = (b) => `
 /* ---------- Питомец ---------- */
 const KIND_NAMES = { cat: "Котик", dog: "Пёсик", fox: "Лисёнок", panda: "Панда", bunny: "Зайка", hamster: "Хомяк", penguin: "Пингвин", dragon: "Дракоша" };
 const STAGE_NAMES = { egg: "яйцо", baby: "малыш", kid: "подросток", adult: "взрослый", legend: "легенда" };
-const ACT_NAMES = { feed: "покормил(а)", pet: "погладил(а)" };
+const ACT_NAMES = { feed: "покормил(а)", pet: "погладил(а)", walk_call: "позвал(а) гулять", walk: "пришёл(ла) на прогулку — погуляли вместе" };
 const ago = (m) => (m < 1 ? "только что" : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.floor(m / 60)} ч назад` : `${Math.floor(m / 1440)} дн назад`);
 const cdText = (sec) => (sec >= 3600 ? `через ${Math.floor(sec / 3600)} ч ${Math.ceil((sec % 3600) / 60)} мин` : `через ${Math.max(1, Math.ceil(sec / 60))} мин`);
 
@@ -511,6 +580,7 @@ function drawPet(p) {
         <span class="pet-lvl">${ICO.xp}${egg ? "яйцо" : `ур. ${p.level} · ${STAGE_NAMES[p.stage]}`}</span></div>
       <div class="pet-stage" id="petTap">
         ${p.stage === "legend" ? `<div class="crown">👑</div>` : ""}
+        ${p.status === "sleep" ? `<div class="zzz"><i>z</i><i>z</i><i>Z</i></div>` : ""}
         <div class="pet-emoji ${!egg && p.kind === "dog" ? "dogwrap" : ""}">${egg ? "🥚" : petFigure(p)}</div>
         <div class="shadow"></div>
       </div>
@@ -523,6 +593,7 @@ function drawPet(p) {
     <div class="pet-actions">
       ${egg ? btn("pet", ICO.sun + "Согреть") : btn("feed", ICO.food + "Покормить") + btn("pet", ICO.joy + "Погладить")}
     </div>
+    ${egg ? "" : walkHtml(p)}
     ${memoryHtml(p)}
     ${houseHtml(p)}
     <h2>Как ${esc(p.name)} растёт</h2>
@@ -541,6 +612,20 @@ function drawPet(p) {
       setTimeout(() => refreshHouse(d.pet), fig?.classList.contains("dogwrap") ? 2900 : 700);
     } catch { b.disabled = false; }
   }));
+  $("#walk")?.addEventListener("click", async () => {
+    const b = $("#walk"); b.disabled = true;
+    try {
+      const d = await api("/api/pet/walk", { method: "POST" });
+      if (d.walked) {
+        success(); hearts("+25 радости", 1);
+        $(".pet-emoji")?.classList.add("act-walk");
+        toast("Погуляли вместе!");
+        setTimeout(() => refreshHouse(d.pet), 2200);
+      } else {
+        success(); toast(`${state.me.partner.name} получит приглашение`); refreshHouse(d.pet);
+      }
+    } catch { b.disabled = false; }
+  });
   $("#petTap").onclick = () => {
     haptic("soft"); const e = $(".pet-emoji");
     if (e.classList.contains("dogwrap")) {
@@ -588,6 +673,19 @@ const ICO = {
   book: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>`,
 };
 
+const WALK_ICO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.5" r="2"/><path d="M9 21l2.5-6.5L14 17v4M7 12.5l2-4 4-1 2.5 3.5 3 1"/><path d="M11.5 14.5L13 9"/></svg>`;
+function walkHtml(p) {
+  const w = p.walk || { state: "ready" }, partner = esc(state.me.partner.name);
+  const [title, sub] = {
+    ready: ["Позвать гулять", `${partner} подтвердит в течение часа — и пойдёте вместе`],
+    waiting: [`Ждём ${partner}`, `Приглашение ещё ${w.mins} мин`],
+    invited: [`${esc(w.by || "")} зовёт гулять!`, `Нажми, чтобы пойти вместе. Осталось ${w.mins} мин`],
+    cooldown: ["Уже погуляли", `${esc(p.name)} отдыхает, снова можно ${cdText((w.mins || 1) * 60)}`],
+  }[w.state] || ["Гулять", ""];
+  const off = w.state === "waiting" || w.state === "cooldown";
+  return `<button class="walk-btn wk-${w.state}" id="walk" ${off ? "disabled" : ""}><span class="wk-ico">${WALK_ICO}</span><span class="grow"><b>${title}</b><small>${sub}</small></span>${off ? "" : `<span class="wk-go">›</span>`}</button>`;
+}
+
 function memoryHtml(p) {
   const m = state.house?.memory;
   if (!m || p.stage === "egg") return "";
@@ -610,14 +708,14 @@ function houseHtml(p) {
   const hr = new Date().getHours();
   const art = SCENE.render(room.id, {
     has: (id) => items.some((i) => i.id === id && i.unlocked),
-    frames: h.frames, photo: photoUrl, night: hr < 7 || hr >= 20,
+    frames: h.frames, photo: photoUrl, night: hr < 7 || hr >= 20, festive: !!state.me.couple?.milestone,
   });
   return `
     <h2>Дом <small>${got} из ${total}</small></h2>
     <div class="rooms">${h.rooms.map((r) => `<button data-room="${r.id}" class="${r.id === room.id ? "on" : ""} ${r.unlocked ? "" : "locked"}">${r.unlocked ? "" : LOCK}${esc(r.name)}${r.unlocked ? "" : `<small>ур. ${r.level}</small>`}</button>`).join("")}</div>
     <div class="scene scene-${room.id}">
       ${art}
-      <span class="resident ${p.kind === "dog" ? "dogwrap st-" + p.status : ""}">${petFigure(p)}</span>
+      <span class="resident ${p.kind === "dog" ? "dogwrap st-" + p.status : ""}">${p.status === "sleep" ? `<span class="zzz sm"><i>z</i><i>z</i><i>Z</i></span>` : ""}${petFigure(p)}</span>
     </div>
     <div class="items-list">
       ${room.id === "living" ? h.frames.map((f) => itemRow(f.name, f.unlocked, f.hint)).join("") : ""}
