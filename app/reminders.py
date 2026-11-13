@@ -101,3 +101,45 @@ async def extras(slot: str, d, couple_id: int, members: list[User], force: bool,
             text = await weekly_text(s, couple_id, members, d)
         for u in members:
             await notify(u.id, text, button="Открыть")
+
+
+# ---------- разовые сообщения «что нового» ----------
+# Открыть один раз: /cron/announce?v=<версия>&key=<CRON_SECRET>. Повторно та же версия не уйдёт.
+ANNOUNCEMENTS = {
+    "2026-11-13": """В нашем приложении обновление
+
+1. Ответ на настроение. Когда один из нас отмечает настроение, второму приходит сообщение с кнопками «Обнять», «Позвоню вечером», «Скоро увидимся». Нажимаешь — и ответ сразу прилетает. То же самое можно сделать во вкладке «Настрой».
+
+2. {pet} теперь живёт по часам. Ночью, с 23:00 до 7:00, спит. А если кому-то из нас грустно и второй ещё не ответил, он переживает и просит обнять.
+
+3. Прогулка вдвоём. На вкладке «Питомец» можно позвать {pet} гулять. Второму приходит приглашение, и у него есть час, чтобы подтвердить. Тогда гуляем вместе, и {pet} становится намного счастливее.
+
+4. Итоги недели. Каждое воскресенье в 21:00 придёт сообщение: какое у нас было настроение, что нового добавили, как дела у {pet}.
+
+5. Праздники. В наши круглые даты — каждый месяц, каждые 100 дней — утром придёт поздравление, а в приложении будет праздничный баннер и гирлянда в доме {pet}.
+
+6. Календарь настроения. История теперь спрятана под кнопкой «История настроения» во вкладке «Настрой». Нажимаешь — открывается календарь, нажимаешь на день — видно, что мы писали.
+
+7. Приложение теперь открывается быстрее.""",
+}
+
+
+@router.api_route("/cron/announce", methods=["GET", "POST"])
+async def announce(v: str, key: str = ""):
+    if not config.CRON_SECRET or not hmac.compare_digest(key, config.CRON_SECRET):
+        raise HTTPException(403)
+    if v not in ANNOUNCEMENTS:
+        raise HTTPException(404, "Нет такой версии")
+    if not await once(f"announce:{v}", False):
+        return {"ok": True, "skipped": "already sent"}
+    from .pet import get_pet  # локально, как и в остальных модулях
+    async with Session() as s:
+        users = (await s.execute(select(User).where(User.couple_id.is_not(None)))).scalars().all()
+        pets = {u.couple_id: await get_pet(s, u.couple_id) for u in users}
+    sent = 0
+    for u in users:
+        pet = pets.get(u.couple_id)
+        name = pet.name if pet else "питомец"
+        await notify(u.id, ANNOUNCEMENTS[v].replace("{pet}", name), button="Посмотреть")
+        sent += 1
+    return {"ok": True, "sent": sent}
