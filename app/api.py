@@ -145,9 +145,22 @@ async def photo(file_id: str):
 
 # ---------- Мы (таймлайн) ----------
 
+STORY_SCENES = {"walk", "movie", "cinema", "cook", "cafe", "trip", "bench", "flowers"}
+
+
+def clean_scene(v: str | None) -> str | None:
+    v = (v or "").strip()
+    if not v:
+        return None
+    if v not in STORY_SCENES:
+        raise HTTPException(400, "Нет такой сцены")
+    return v
+
+
 def moment_out(m: Moment, names: dict) -> dict:
     return {"id": m.id, "title": m.title, "text": m.text, "happened_on": m.happened_on.isoformat(),
-            "photo": m.photo_file_id, "author": names.get(m.author_id, "?"), "author_id": m.author_id}
+            "photo": m.photo_file_id, "author": names.get(m.author_id, "?"), "author_id": m.author_id,
+            "scene": m.scene}
 
 
 async def couple_names(s: AsyncSession, couple_id: int) -> dict:
@@ -168,18 +181,45 @@ async def moments_create(
     text: str = Form("", max_length=3000),
     happened_on: date = Form(...),
     photo: UploadFile | None = File(None),
+    scene: str = Form(""),
     user: User = Depends(paired_user),
     s: AsyncSession = Depends(get_session),
 ):
+    sc = clean_scene(scene)
     data = await read_photo(photo)
     file_id = await store_photo(user.id, data, photo.filename) if data else None
     m = Moment(couple_id=user.couple_id, author_id=user.id, title=title.strip(), text=text.strip(),
-               happened_on=happened_on, photo_file_id=file_id)
+               happened_on=happened_on, photo_file_id=file_id, scene=sc)
     s.add(m)
     await s.commit()
     await award(s, user.couple_id, "moment")
-    await ping_partner(s, user, f"{user.name} добавил(а) момент: «{m.title}»")
+    extra = " — и он теперь глава в вашем мультике" if sc else ""
+    await ping_partner(s, user, f"{user.name} добавил(а) момент: «{m.title}»{extra}")
     return moment_out(m, {user.id: user.name})
+
+
+class SceneIn(BaseModel):
+    scene: str | None = None
+
+
+@router.patch("/moments/{mid}")
+async def moments_scene(mid: int, body: SceneIn, user: User = Depends(paired_user),
+                        s: AsyncSession = Depends(get_session)):
+    m = await s.get(Moment, mid)
+    if not m or m.couple_id != user.couple_id:
+        raise HTTPException(404, "Нет такого момента")
+    m.scene = clean_scene(body.scene)
+    await s.commit()
+    return moment_out(m, await couple_names(s, user.couple_id))
+
+
+@router.get("/story")
+async def story(user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
+    """Главы мультика из ваших моментов — по порядку, от старых к новым."""
+    q = (select(Moment).where(Moment.couple_id == user.couple_id, Moment.scene.is_not(None))
+         .order_by(Moment.happened_on, Moment.id).limit(60))
+    return [{"id": m.id, "title": m.title, "text": m.text, "happened_on": m.happened_on.isoformat(), "scene": m.scene}
+            for m in (await s.execute(q)).scalars()]
 
 
 @router.delete("/moments/{mid}")

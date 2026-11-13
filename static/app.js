@@ -254,6 +254,15 @@ function startTicker() {
 }
 
 /* ---------- Мы ---------- */
+const STORY_SCENES = [["walk", "Прогулка"], ["movie", "Кино дома"], ["cinema", "Кинотеатр"], ["cook", "Готовили"],
+  ["cafe", "Кофейня"], ["trip", "Поездка"], ["bench", "Лавочка вечером"], ["flowers", "Цветы"]];
+const SCENE_NAME = Object.fromEntries(STORY_SCENES);
+const scenePicker = (cur) => `
+  <div class="scene-pick">
+    <label><input type="radio" name="scene" value="" ${cur ? "" : "checked"}><span>Не добавлять</span></label>
+    ${STORY_SCENES.map(([k, n]) => `<label><input type="radio" name="scene" value="${k}" ${cur === k ? "checked" : ""}><span>${n}</span></label>`).join("")}
+  </div>`;
+
 async function renderUs() {
   const items = await api("/api/moments");
   const c = state.me.couple;
@@ -263,15 +272,20 @@ async function renderUs() {
        <button class="small" id="setDate">Изменить дату</button>`
     : `<div class="lbl" style="font-size:17px">С какого дня вы вместе?</div><button class="small" id="setDate">Указать дату</button>`;
   const ms = c.milestone;
+  const storyCount = items.filter((m) => m.scene).length;
   view.innerHTML = `
     ${ms ? `<div class="milestone"><div class="ms-confetti">${"<i></i>".repeat(14)}</div><span class="ms-ico">${ICO.joy}</span><div><b>${esc(ms.text)}</b><small>С праздником вас. Сегодня и дом питомца нарядный</small></div></div>` : ""}
     <div class="hero">${hero}</div>
-    <button class="story-btn" id="story"><span class="sb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9.5 4.5 2.5-4.5 2.5z" fill="currentColor"/></svg></span><span class="grow"><b>Наш мультик</b><small>История о нас в 19 сценах</small></span><span class="sb-go">›</span></button>
+    <button class="story-btn" id="story"><span class="sb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9.5 4.5 2.5-4.5 2.5z" fill="currentColor"/></svg></span><span class="grow"><b>Наш мультик</b><small>${storyCount ? `19 сцен + ${storyCount} ${plural(storyCount, "глава", "главы", "глав")} из ваших моментов` : "История о нас в 19 сценах"}</small></span><span class="sb-go">›</span></button>
     <h2>Наши моменты <small>${items.length || ""}</small></h2>
     ${items.length ? `<div class="timeline">${items.map(momentCard).join("")}</div>`
       : `<div class="empty">Добавьте первый момент — первое свидание, смешной случай, любое «помнишь?»</div>`}`;
   startTicker();
-  $("#story").onclick = () => { haptic(); location.href = "/static/story.html?v=2"; };
+  $("#story").onclick = () => {
+    haptic();
+    try { sessionStorage.setItem("initData", tg?.initData || ""); } catch {}
+    location.href = "/static/story.html?v=3";
+  };
   $("#setDate").onclick = () => openSheet(
     `<h3>Начало истории</h3>
      <label>Дата</label><input type="date" name="d" value="${c.started_on || ""}" max="${todayIso()}" required>
@@ -281,6 +295,14 @@ async function renderUs() {
       state.me = await api("/api/me"); updateSubtitle();
     }
   );
+  view.querySelectorAll("[data-scene-moment]").forEach((b) => (b.onclick = () => {
+    haptic();
+    openSheet(`<h3>Сцена в мультике</h3><p class="muted" style="margin:0 0 8px">Как нарисовать этот момент? Подписью станет его текст</p>${scenePicker(b.dataset.scene)}`,
+      async (f) => {
+        await api(`/api/moments/${b.dataset.sceneMoment}`, { method: "PATCH", json: { scene: f.scene.value || null } });
+        setTimeout(() => toast(f.scene.value ? "Глава в мультике готова" : "Убрали из мультика"), 400);
+      });
+  }));
   view.querySelectorAll("[data-del-moment]").forEach((b) => (b.onclick = async () => {
     if (!(await confirmAsk("Удалить этот момент?"))) return;
     await api(`/api/moments/${b.dataset.delMoment}`, { method: "DELETE" }); render();
@@ -290,8 +312,13 @@ async function renderUs() {
     <label>Что было</label><input name="title" maxlength="200" placeholder="Первое свидание" required>
     <label>Когда</label><input type="date" name="happened_on" value="${todayIso()}" max="${todayIso()}" required>
     <label>Пару слов</label><textarea name="text" maxlength="3000" placeholder="Что запомнилось?"></textarea>
-    <label>Фото</label><input type="file" name="photo" accept="image/*">`,
-    async (f) => { await api("/api/moments", { method: "POST", form: new FormData(f) }); }
+    <label>Фото</label><input type="file" name="photo" accept="image/*">
+    <label>Добавить в мультик</label>${scenePicker("")}
+    <p class="muted" style="margin:6px 0 0;font-size:13px">Момент станет новой главой мультика — с вашей подписью</p>`,
+    async (f) => {
+      await api("/api/moments", { method: "POST", form: new FormData(f) });
+      if (f.scene.value) setTimeout(() => toast("Добавили новую главу в мультик"), 400);
+    }
   ));
 }
 
@@ -301,7 +328,8 @@ const momentCard = (m) => `
     <div class="t">${esc(m.title)}</div>
     ${m.text ? `<div class="tx">${esc(m.text)}</div>` : ""}
     ${m.photo ? `<img loading="lazy" src="${photoUrl(m.photo)}" alt="">` : ""}
-    <div class="muted" style="margin-top:6px">добавил(а) ${esc(m.author)}</div>
+    <div class="row between mc-foot"><span class="muted">добавил(а) ${esc(m.author)}</span>
+      <button class="mc-scene ${m.scene ? "on" : ""}" data-scene-moment="${m.id}" data-scene="${m.scene || ""}">${m.scene ? `В мультике · ${SCENE_NAME[m.scene] || ""}` : "+ В мультик"}</button></div>
   </div>`;
 
 /* ---------- Вишлисты ---------- */

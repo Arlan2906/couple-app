@@ -50,6 +50,7 @@ class Moment(Base):
     text: Mapped[str] = mapped_column(Text, default="")
     happened_on: Mapped[date] = mapped_column(Date)
     photo_file_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    scene: Mapped[str | None] = mapped_column(String(16), nullable=True)  # сцена в мультике: walk | movie | …
 
 
 class Wish(Base):
