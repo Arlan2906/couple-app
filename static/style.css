@@ -781,3 +781,12 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 .dog-sleep .ds-tail { transform-origin: 200px 100px; animation: dsTail 6s ease-in-out infinite; }
 @keyframes dsTail { 0%, 80%, 100% { transform: rotate(0); } 86% { transform: rotate(8deg); } 92% { transform: rotate(-4deg); } }
 .pet-card.sleep-floor .zzz { left: 34%; top: 58px; }
+
+/* такса */
+.dog-sleep.tax { width: 250px; }
+.sg-baby .dog-sleep.tax { width: 160px; } .sg-kid .dog-sleep.tax { width: 205px; }
+.dog-sleep.tax .ds-breath { transform-origin: 156px 116px; }
+.dog-sleep.tax .ds-head { transform-origin: 60px 118px; }
+.dog-sleep.tax .ds-ear-l { transform-origin: 90px 76px; }
+.dog-sleep.tax .ds-tail { transform-origin: 232px 100px; }
+.pet-card.sleep-floor .dog-sleep.tax ~ * {}
