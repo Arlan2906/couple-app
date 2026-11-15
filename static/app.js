@@ -881,46 +881,62 @@ function sleepSpot(p) {
 
 function dogSleepSvg(v = {}) {
   const P = { ...DOG_DEFAULT, ...v }, I = "dsl";
-  const strands = [[60, 84, -4, 14], [72, 76, -3, 16], [168, 76, 3, 16], [180, 84, 4, 14], [50, 96, -4, 12], [190, 96, 4, 12]]
-    .map(([x, y, dx, dy]) => `<path d="M${x} ${y} q${dx / 2 + 1.5} ${dy / 2} ${dx} ${dy}" stroke="${P.shade}" stroke-opacity=".35" stroke-width="1.4" stroke-linecap="round" fill="none"/>`).join("");
+  const fur = (x, y, dx, dy, op = .32) => `<path d="M${x} ${y} q${dx / 2} ${dy / 2 - 2} ${dx} ${dy}" stroke="${P.shade}" stroke-opacity="${op}" stroke-width="1.3" stroke-linecap="round" fill="none"/>`;
   return `
-  <svg class="dog-sleep" viewBox="0 0 240 140" aria-label="собачка спит">
+  <svg class="dog-sleep" viewBox="0 0 240 150" aria-label="собачка спит">
     <defs>
-      <radialGradient id="${I}-fur" cx=".45" cy=".25" r=".85"><stop offset="0" stop-color="${P.fur[0]}"/><stop offset=".55" stop-color="${P.fur[1]}"/><stop offset="1" stop-color="${P.fur[2]}"/></radialGradient>
+      <radialGradient id="${I}-fur" cx=".42" cy=".22" r=".9"><stop offset="0" stop-color="${P.fur[0]}"/><stop offset=".55" stop-color="${P.fur[1]}"/><stop offset="1" stop-color="${P.fur[2]}"/></radialGradient>
+      <radialGradient id="${I}-hip" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="${P.fur[0]}"/><stop offset="1" stop-color="${P.fur[1]}"/></radialGradient>
       <radialGradient id="${I}-cream" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="${P.cream[0]}"/><stop offset="1" stop-color="${P.cream[1]}"/></radialGradient>
       <linearGradient id="${I}-ear" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${P.ear[0]}"/><stop offset="1" stop-color="${P.ear[1]}"/></linearGradient>
-      <radialGradient id="${I}-sh"><stop offset="0" stop-color="#000" stop-opacity=".26"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${I}-sh"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
     </defs>
-    <ellipse cx="120" cy="129" rx="110" ry="11" fill="url(#${I}-sh)"/>
+    <ellipse cx="124" cy="138" rx="104" ry="10" fill="url(#${I}-sh)"/>
     <g class="ds-breath">
-      <path d="M194,114 C228,112 238,84 222,64 C215,57 205,61 209,70 C219,86 212,100 190,103Z" fill="url(#${I}-fur)"/>
-      <path d="M222,64 C215,57 205,61 209,70 C211,74 213,79 213,84 C222,80 228,72 222,64Z" fill="url(#${I}-cream)"/>
-      <path d="M212,96 q8,-6 10,-16 M206,104 q10,-4 14,-12" stroke="${P.shade}" stroke-opacity=".35" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-      <ellipse cx="120" cy="97" rx="92" ry="34" fill="url(#${I}-fur)"/>
-      <path d="M44,86 Q120,50 196,86" stroke="#fff" stroke-opacity=".22" stroke-width="5" fill="none" stroke-linecap="round"/>
-      ${strands}
-      <ellipse cx="36" cy="121" rx="19" ry="9" fill="url(#${I}-cream)"/><ellipse cx="204" cy="121" rx="19" ry="9" fill="url(#${I}-cream)"/>
-      <path d="M26,119 v4 M33,118 v5 M40,118 v5 M200,118 v5 M207,118 v5 M214,119 v4" stroke="#C9A67E" stroke-width="1.1" stroke-linecap="round"/>
-      <ellipse cx="120" cy="113" rx="52" ry="18" fill="url(#${I}-cream)"/>
-      <rect x="82" y="111" width="32" height="17" rx="8.5" fill="url(#${I}-fur)"/><rect x="126" y="111" width="32" height="17" rx="8.5" fill="url(#${I}-fur)"/>
-      <ellipse cx="96" cy="126" rx="15" ry="7.4" fill="url(#${I}-cream)"/><ellipse cx="144" cy="126" rx="15" ry="7.4" fill="url(#${I}-cream)"/>
-      <path d="M89,123 v5 M95,122 v6 M101,123 v5 M139,123 v5 M145,122 v6 M151,123 v5" stroke="#C9A67E" stroke-width="1.1" stroke-linecap="round"/>
+      <!-- туловище: спина дугой -->
+      <path d="M58,132 C46,104 66,60 118,56 C168,52 206,78 210,108 C212,124 204,134 190,136 L70,136 C64,136 60,134 58,132Z" fill="url(#${I}-fur)"/>
+      <path d="M76,78 C96,62 140,58 172,70" stroke="#fff" stroke-opacity=".28" stroke-width="5" stroke-linecap="round" fill="none"/>
+      ${fur(96, 72, 6, 12)}${fur(120, 66, 4, 13)}${fur(146, 68, 2, 13)}${fur(170, 76, -1, 12)}${fur(190, 90, -3, 11)}
+      <!-- бедро задней лапы -->
+      <ellipse cx="166" cy="110" rx="36" ry="27" fill="url(#${I}-hip)"/>
+      <path d="M138,98 C146,86 168,82 186,90" stroke="#fff" stroke-opacity=".3" stroke-width="3" stroke-linecap="round" fill="none"/>
+      ${fur(150, 120, 4, 8, .28)}${fur(170, 122, 3, 8, .28)}
+      <!-- задняя лапка, поджата -->
+      <path d="M140,134 C132,134 126,130 128,124 C130,118 150,118 162,122 C170,126 168,134 160,135Z" fill="url(#${I}-cream)"/>
+      <path d="M134,128 v4 M140,127 v6 M146,127 v6" stroke="#C9A67E" stroke-width="1" stroke-linecap="round"/>
+      <!-- светлый живот/грудь -->
+      <path d="M70,134 C72,118 90,110 108,114 C122,118 128,128 124,136 L72,136Z" fill="url(#${I}-cream)"/>
+      <!-- пушистый хвост загнут на спину -->
+      <g class="ds-tail">
+        <path d="M200,104 C214,100 226,86 222,68 C219,58 208,56 204,64 C210,74 206,88 194,94Z" fill="url(#${I}-fur)"/>
+        <path d="M222,68 C219,58 208,56 204,64 C206,68 208,73 208,78 C216,78 224,74 222,68Z" fill="url(#${I}-cream)"/>
+        ${fur(212, 88, 6, -8, .35)}${fur(206, 96, 8, -6, .35)}
+      </g>
     </g>
     <g class="ds-head">
-      <g class="ds-ear-l"><path d="M92,70 C74,58 66,40 68,28 C84,32 100,46 108,60Z" fill="url(#${I}-ear)"/><path d="M93,62 C82,54 77,44 77,37 C86,40 95,48 100,56Z" fill="${P.earInner}"/></g>
-      <g class="ds-ear-r"><path d="M148,70 C166,58 174,40 172,28 C156,32 140,46 132,60Z" fill="url(#${I}-ear)"/><path d="M147,62 C158,54 163,44 163,37 C154,40 145,48 140,56Z" fill="${P.earInner}"/></g>
-      <path d="M120,52 C152,52 162,72 160,90 C158,110 140,120 120,120 C100,120 82,110 80,90 C78,72 88,52 120,52Z" fill="url(#${I}-fur)"/>
-      <path d="M82,96 L74,102 L82,103 L78,110 L88,106 L86,113 L92,107Z M158,96 L166,102 L158,103 L162,110 L152,106 L154,113 L148,107Z" fill="url(#${I}-fur)"/>
-      <path d="M120,54 C114,64 115,76 120,86 C125,76 126,64 120,54Z" fill="url(#${I}-cream)" opacity=".95"/>
-      <path d="M98,58 C108,52 132,52 142,58" stroke="#fff" stroke-opacity=".25" stroke-width="3" stroke-linecap="round" fill="none"/>
-      <path d="M98,102 C98,90 110,86 120,86 C130,86 142,90 142,102 C142,114 132,121 120,121 C108,121 98,114 98,102Z" fill="url(#${I}-cream)"/>
-      <ellipse cx="96" cy="100" rx="6" ry="3.4" fill="#FF8FB0" opacity=".4"/><ellipse cx="144" cy="100" rx="6" ry="3.4" fill="#FF8FB0" opacity=".4"/>
-      <path d="M96,82 Q104,89.5 112,82 M128,82 Q136,89.5 144,82" stroke="#2A1A16" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-      <path d="M95,82 l-3,-1.4 M145,82 l3,-1.4" stroke="#2A1A16" stroke-width="1.4" stroke-linecap="round"/>
-      <path d="M112,94 C112,89 128,89 128,94 C128,98 123,101 120,101 C117,101 112,98 112,94Z" fill="#2a1a17"/>
-      <ellipse cx="116.5" cy="92.4" rx="3" ry="1.3" fill="#fff" opacity=".4"/>
-      <path d="M120,101 v3.4 M120,104.4 q-4,3.4 -8,1.2 M120,104.4 q4,3.4 8,1.2" stroke="#2A1A16" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-      <path d="M90,116 Q120,130 150,116" stroke="${P.collar[0]}" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <!-- передние лапы под мордой -->
+      <path d="M16,132 C14,124 34,122 58,124 C72,126 74,136 62,138 L24,138 C18,138 16,136 16,132Z" fill="url(#${I}-cream)"/>
+      <path d="M24,128 v6 M31,127 v7 M38,127 v7" stroke="#C9A67E" stroke-width="1.1" stroke-linecap="round"/>
+      <!-- ухо -->
+      <path d="M92,86 C98,70 108,60 118,58 C120,70 114,82 104,92Z" fill="${P.ear[1]}"/>
+      <g class="ds-ear-l"><path d="M80,84 C82,64 92,50 104,46 C108,60 104,76 96,90Z" fill="url(#${I}-ear)"/><path d="M86,82 C88,68 94,58 101,54 C103,64 100,74 94,84Z" fill="${P.earInner}"/></g>
+      <!-- голова в профиль, лежит на лапах -->
+      <path d="M100,96 C102,116 88,130 66,130 C52,130 40,128 30,124 C20,120 18,112 24,108 C30,104 40,100 46,92 C54,80 68,74 82,76 C94,78 100,86 100,96Z" fill="url(#${I}-fur)"/>
+      <path d="M30,124 C24,120 22,113 26,110 C34,106 46,108 56,112 C66,116 72,124 66,130 C52,130 40,128 30,124Z" fill="url(#${I}-cream)"/>
+      <path d="M48,92 C54,86 62,84 70,86 C64,90 58,96 54,102Z" fill="url(#${I}-cream)" opacity=".9"/>
+      <path d="M58,80 C68,76 84,76 94,84" stroke="#fff" stroke-opacity=".3" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <!-- нос -->
+      <path d="M18,110 C16,104 24,102 28,106 C30,109 28,113 24,113 C21,113 19,112 18,110Z" fill="#2a1a17"/>
+      <ellipse cx="22" cy="106.4" rx="2.4" ry="1.2" fill="#fff" opacity=".4"/>
+      <path d="M26,116 q8,4 16,2" stroke="#2A1A16" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+      <!-- закрытый глаз -->
+      <path d="M58,98 Q65,104 72,99" stroke="#2A1A16" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+      <path d="M57,98 l-2.6,-1.4 M60.5,101 l-2,1.6" stroke="#2A1A16" stroke-width="1.2" stroke-linecap="round"/>
+      <ellipse cx="64" cy="110" rx="7" ry="3.6" fill="#FF8FB0" opacity=".42"/>
+      <circle cx="38" cy="114" r=".9" fill="#7B5A44" opacity=".5"/><circle cx="43" cy="116" r=".9" fill="#7B5A44" opacity=".5"/><circle cx="40" cy="119" r=".9" fill="#7B5A44" opacity=".5"/>
+      <!-- ошейник -->
+      <path d="M96,86 C102,100 102,114 94,126" stroke="${P.collar[0]}" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <circle cx="100" cy="112" r="3.4" fill="#FFD25A" stroke="#C99416" stroke-width="1"/>
     </g>
   </svg>`;
 }

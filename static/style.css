@@ -753,12 +753,12 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 
 /* спит лёжа на коврике */
 .pet-emoji.lying { margin-bottom: 0; animation: none !important; }
-.dog-sleep { display: block; overflow: visible; width: 210px; height: auto; }
-.sg-baby .dog-sleep { width: 140px; } .sg-kid .dog-sleep { width: 176px; }
+.dog-sleep { display: block; overflow: visible; width: 236px; height: auto; }
+.sg-baby .dog-sleep { width: 150px; } .sg-kid .dog-sleep { width: 192px; }
 .dog-sleep * { transform-box: view-box; }
-.dog-sleep .ds-breath { transform-origin: 120px 130px; animation: dsBreath 3.8s ease-in-out infinite; }
-.dog-sleep .ds-head { transform-origin: 120px 124px; animation: dsHead 3.8s ease-in-out infinite; }
-.dog-sleep .ds-ear-l { transform-origin: 98px 66px; animation: dsEar 7s ease-in-out infinite; }
+.dog-sleep .ds-breath { transform-origin: 140px 136px; animation: dsBreath 3.8s ease-in-out infinite; }
+.dog-sleep .ds-head { transform-origin: 60px 134px; animation: dsHead 3.8s ease-in-out infinite; }
+.dog-sleep .ds-ear-l { transform-origin: 88px 86px; animation: dsEar 7s ease-in-out infinite; }
 @keyframes dsBreath { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.045); } }
 @keyframes dsHead { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.4px); } }
 @keyframes dsEar { 0%, 88%, 100% { transform: rotate(0); } 92% { transform: rotate(-9deg); } 96% { transform: rotate(3deg); } }
@@ -777,3 +777,7 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 /* в комнатах дома — тоже лёжа */
 .resident.lying, .resident.dogwrap.lying { width: 34%; animation: none; }
 .resident.lying .dog-sleep { width: 100%; }
+
+.dog-sleep .ds-tail { transform-origin: 200px 100px; animation: dsTail 6s ease-in-out infinite; }
+@keyframes dsTail { 0%, 80%, 100% { transform: rotate(0); } 86% { transform: rotate(8deg); } 92% { transform: rotate(-4deg); } }
+.pet-card.sleep-floor .zzz { left: 34%; top: 58px; }
