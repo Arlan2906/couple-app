@@ -588,6 +588,8 @@ function renderPetPicker(kinds) {
 
 function drawPet(p) {
   const egg = p.stage === "egg";
+  const mode = roomMode();
+  const spot = p.status === "sleep" && !egg ? sleepSpot(p) : null;
   const lvlPct = egg ? Math.min(100, Math.round((p.xp / p.hatch_xp) * 100)) : Math.round((p.level_xp / p.level_need) * 100);
   const btn = (action, label) => {
     const cd = p.cooldowns[action];
@@ -602,14 +604,14 @@ function drawPet(p) {
   const GROW = [["Отметить настроение", "+10", "оба за день — ещё +10"], ["Новый момент", "+15", ""], ["Сбывшаяся мечта", "+40", ""],
     ["Записка в «Несказанном»", "+10", ""], ["Копилка, желание, новая мечта", "+5", ""], ["Покормить, погладить", "+3", "у каждого своя перезарядка"]];
   view.innerHTML = `
-    <div class="pet-card st-${p.status} sg-${p.stage}">
-      <div class="pc-deco"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="pet-card room mode-${mode} st-${p.status} sg-${p.stage} ${spot ? "sleep-" + spot : ""}">
+      <div class="pc-room">${petRoomSvg(p, mode, spot)}</div>
       <div class="pet-top"><button class="pet-name" id="rename">${esc(p.name)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
         <span class="pet-lvl">${ICO.xp}${egg ? "яйцо" : `ур. ${p.level} · ${STAGE_NAMES[p.stage]}`}</span></div>
       <div class="pet-stage" id="petTap">
         ${p.stage === "legend" ? `<div class="crown">👑</div>` : ""}
-        ${p.status === "sleep" ? `<div class="zzz"><i>z</i><i>z</i><i>Z</i></div>` : ""}
-        <div class="pet-emoji ${!egg && p.kind === "dog" ? "dogwrap" : ""}">${egg ? "🥚" : petFigure(p)}</div>
+        ${p.status === "sleep" && spot !== "house" ? `<div class="zzz"><i>z</i><i>z</i><i>Z</i></div>` : ""}
+        <div class="pet-emoji ${!egg && p.kind === "dog" ? "dogwrap" : ""} ${spot === "floor" && p.kind === "dog" ? "lying" : ""} ${spot === "house" ? "in-house" : ""}">${egg ? "🥚" : spot === "floor" && p.kind === "dog" ? dogSleepSvg() : petFigure(p)}</div>
         <div class="shadow"></div>
       </div>
       <div class="pet-status">${esc(p.status_text)}</div>
@@ -635,7 +637,7 @@ function drawPet(p) {
     try {
       const d = await api(`/api/pet/${b.dataset.act}`, { method: "POST" });
       success(); hearts(b.dataset.act === "feed" ? "+22 сытость" : "+12 радость", 1);
-      const fig = $(".pet-emoji");
+      const fig = wakePet(p);
       fig?.classList.add(`act-${b.dataset.act}`);   // собачка ест из миски / жмурится от удовольствия
       setTimeout(() => refreshHouse(d.pet), fig?.classList.contains("dogwrap") ? 2900 : 700);
     } catch { b.disabled = false; }
@@ -646,7 +648,7 @@ function drawPet(p) {
       const d = await api("/api/pet/walk", { method: "POST" });
       if (d.walked) {
         success(); hearts("+25 радости", 1);
-        $(".pet-emoji")?.classList.add("act-walk");
+        wakePet(p)?.classList.add("act-walk");
         toast("Погуляли вместе!");
         setTimeout(() => refreshHouse(d.pet), 2200);
       } else {
@@ -656,6 +658,12 @@ function drawPet(p) {
   });
   $("#petTap").onclick = () => {
     haptic("soft"); const e = $(".pet-emoji");
+    if (spot && !$(".pet-card").classList.contains("awake")) {
+      if ($(".bark-bubble")) return;
+      const bub = document.createElement("span"); bub.className = "bark-bubble shh"; bub.textContent = "Тсс… спит";
+      $("#petTap").appendChild(bub); setTimeout(() => bub.remove(), 1400);
+      return;
+    }
     if (e.classList.contains("dogwrap")) {
       if (e.classList.contains("bark")) return;
       e.classList.add("bark");
@@ -675,6 +683,19 @@ function drawPet(p) {
     `<h3>Новое имя</h3><label>Имя</label><input name="n" maxlength="40" value="${esc(p.name)}" required>`,
     async (f) => { await api("/api/pet", { method: "PATCH", json: { name: f.n.value } }); }
   );
+}
+
+// на время кормления/поглаживания/прогулки питомец просыпается, потом снова засыпает
+function wakePet(p) {
+  const card = $(".pet-card"), fig = $(".pet-emoji");
+  if (!card || !fig) return fig;
+  if (card.className.includes("sleep-")) {
+    card.classList.add("awake");
+    $(".pet-stage .zzz")?.remove();
+    fig.classList.remove("lying", "in-house");
+    if (p.kind === "dog") fig.innerHTML = dogSvg();
+  }
+  return fig;
 }
 
 function hearts(ch, n = 5) {
@@ -743,7 +764,7 @@ function houseHtml(p) {
     <div class="rooms">${h.rooms.map((r) => `<button data-room="${r.id}" class="${r.id === room.id ? "on" : ""} ${r.unlocked ? "" : "locked"}">${r.unlocked ? "" : LOCK}${esc(r.name)}${r.unlocked ? "" : `<small>ур. ${r.level}</small>`}</button>`).join("")}</div>
     <div class="scene scene-${room.id}">
       ${art}
-      <span class="resident ${p.kind === "dog" ? "dogwrap st-" + p.status : ""}">${p.status === "sleep" ? `<span class="zzz sm"><i>z</i><i>z</i><i>Z</i></span>` : ""}${petFigure(p)}</span>
+      <span class="resident ${p.kind === "dog" ? "dogwrap st-" + p.status : ""} ${p.kind === "dog" && p.status === "sleep" ? "lying" : ""}">${p.status === "sleep" ? `<span class="zzz sm"><i>z</i><i>z</i><i>Z</i></span>` : ""}${p.kind === "dog" && p.status === "sleep" ? dogSleepSvg() : petFigure(p)}</span>
     </div>
     <div class="items-list">
       ${room.id === "living" ? h.frames.map((f) => itemRow(f.name, f.unlocked, f.hint)).join("") : ""}
@@ -844,6 +865,179 @@ function updateBadges() {
 // Поведение зависит от классов на обёртке: st-happy / st-hungry / st-sad / st-bored, act-feed, act-pet, bark.
 function petFigure(p) {
   return p.kind === "dog" ? dogSvg() : p.emoji;
+}
+
+/* ---------- комната в карточке питомца ---------- */
+function roomMode(h = new Date().getHours()) {
+  return h >= 20 || h < 7 ? "night" : h >= 17 ? "evening" : "day";
+}
+// где спит сегодня: одна ночь в будке, другая на коврике (одинаково на обоих телефонах)
+function sleepSpot(p) {
+  if (p.kind !== "dog") return "floor";
+  const d = new Date(Date.now() - 7 * 3600e3);             // ночь относится к вечеру, с которого началась
+  const n = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+  return n % 2 ? "house" : "floor";
+}
+
+function dogSleepSvg(v = {}) {
+  const P = { ...DOG_DEFAULT, ...v }, I = "dsl";
+  const strands = [[60, 84, -4, 14], [72, 76, -3, 16], [168, 76, 3, 16], [180, 84, 4, 14], [50, 96, -4, 12], [190, 96, 4, 12]]
+    .map(([x, y, dx, dy]) => `<path d="M${x} ${y} q${dx / 2 + 1.5} ${dy / 2} ${dx} ${dy}" stroke="${P.shade}" stroke-opacity=".35" stroke-width="1.4" stroke-linecap="round" fill="none"/>`).join("");
+  return `
+  <svg class="dog-sleep" viewBox="0 0 240 140" aria-label="собачка спит">
+    <defs>
+      <radialGradient id="${I}-fur" cx=".45" cy=".25" r=".85"><stop offset="0" stop-color="${P.fur[0]}"/><stop offset=".55" stop-color="${P.fur[1]}"/><stop offset="1" stop-color="${P.fur[2]}"/></radialGradient>
+      <radialGradient id="${I}-cream" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="${P.cream[0]}"/><stop offset="1" stop-color="${P.cream[1]}"/></radialGradient>
+      <linearGradient id="${I}-ear" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${P.ear[0]}"/><stop offset="1" stop-color="${P.ear[1]}"/></linearGradient>
+      <radialGradient id="${I}-sh"><stop offset="0" stop-color="#000" stop-opacity=".26"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    </defs>
+    <ellipse cx="120" cy="129" rx="110" ry="11" fill="url(#${I}-sh)"/>
+    <g class="ds-breath">
+      <path d="M194,114 C228,112 238,84 222,64 C215,57 205,61 209,70 C219,86 212,100 190,103Z" fill="url(#${I}-fur)"/>
+      <path d="M222,64 C215,57 205,61 209,70 C211,74 213,79 213,84 C222,80 228,72 222,64Z" fill="url(#${I}-cream)"/>
+      <path d="M212,96 q8,-6 10,-16 M206,104 q10,-4 14,-12" stroke="${P.shade}" stroke-opacity=".35" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="120" cy="97" rx="92" ry="34" fill="url(#${I}-fur)"/>
+      <path d="M44,86 Q120,50 196,86" stroke="#fff" stroke-opacity=".22" stroke-width="5" fill="none" stroke-linecap="round"/>
+      ${strands}
+      <ellipse cx="36" cy="121" rx="19" ry="9" fill="url(#${I}-cream)"/><ellipse cx="204" cy="121" rx="19" ry="9" fill="url(#${I}-cream)"/>
+      <path d="M26,119 v4 M33,118 v5 M40,118 v5 M200,118 v5 M207,118 v5 M214,119 v4" stroke="#C9A67E" stroke-width="1.1" stroke-linecap="round"/>
+      <ellipse cx="120" cy="113" rx="52" ry="18" fill="url(#${I}-cream)"/>
+      <rect x="82" y="111" width="32" height="17" rx="8.5" fill="url(#${I}-fur)"/><rect x="126" y="111" width="32" height="17" rx="8.5" fill="url(#${I}-fur)"/>
+      <ellipse cx="96" cy="126" rx="15" ry="7.4" fill="url(#${I}-cream)"/><ellipse cx="144" cy="126" rx="15" ry="7.4" fill="url(#${I}-cream)"/>
+      <path d="M89,123 v5 M95,122 v6 M101,123 v5 M139,123 v5 M145,122 v6 M151,123 v5" stroke="#C9A67E" stroke-width="1.1" stroke-linecap="round"/>
+    </g>
+    <g class="ds-head">
+      <g class="ds-ear-l"><path d="M92,70 C74,58 66,40 68,28 C84,32 100,46 108,60Z" fill="url(#${I}-ear)"/><path d="M93,62 C82,54 77,44 77,37 C86,40 95,48 100,56Z" fill="${P.earInner}"/></g>
+      <g class="ds-ear-r"><path d="M148,70 C166,58 174,40 172,28 C156,32 140,46 132,60Z" fill="url(#${I}-ear)"/><path d="M147,62 C158,54 163,44 163,37 C154,40 145,48 140,56Z" fill="${P.earInner}"/></g>
+      <path d="M120,52 C152,52 162,72 160,90 C158,110 140,120 120,120 C100,120 82,110 80,90 C78,72 88,52 120,52Z" fill="url(#${I}-fur)"/>
+      <path d="M82,96 L74,102 L82,103 L78,110 L88,106 L86,113 L92,107Z M158,96 L166,102 L158,103 L162,110 L152,106 L154,113 L148,107Z" fill="url(#${I}-fur)"/>
+      <path d="M120,54 C114,64 115,76 120,86 C125,76 126,64 120,54Z" fill="url(#${I}-cream)" opacity=".95"/>
+      <path d="M98,58 C108,52 132,52 142,58" stroke="#fff" stroke-opacity=".25" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M98,102 C98,90 110,86 120,86 C130,86 142,90 142,102 C142,114 132,121 120,121 C108,121 98,114 98,102Z" fill="url(#${I}-cream)"/>
+      <ellipse cx="96" cy="100" rx="6" ry="3.4" fill="#FF8FB0" opacity=".4"/><ellipse cx="144" cy="100" rx="6" ry="3.4" fill="#FF8FB0" opacity=".4"/>
+      <path d="M96,82 Q104,89.5 112,82 M128,82 Q136,89.5 144,82" stroke="#2A1A16" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <path d="M95,82 l-3,-1.4 M145,82 l3,-1.4" stroke="#2A1A16" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M112,94 C112,89 128,89 128,94 C128,98 123,101 120,101 C117,101 112,98 112,94Z" fill="#2a1a17"/>
+      <ellipse cx="116.5" cy="92.4" rx="3" ry="1.3" fill="#fff" opacity=".4"/>
+      <path d="M120,101 v3.4 M120,104.4 q-4,3.4 -8,1.2 M120,104.4 q4,3.4 8,1.2" stroke="#2A1A16" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M90,116 Q120,130 150,116" stroke="${P.collar[0]}" stroke-width="5" stroke-linecap="round" fill="none"/>
+    </g>
+  </svg>`;
+}
+
+function petRoomSvg(p, mode, spot) {
+  const N = mode === "night", E = mode === "evening";
+  const C = N ? { w1: "#3E3870", w2: "#2E2A58", st: .05, wn: "#3A3466", wl: "#4E4787", bb: "#5A5390", f1: "#6F5049", f2: "#4B3434", pl: "rgba(0,0,0,.28)", rug: "#9A5F86", rugB: "#C27BA6" }
+    : E ? { w1: "#F6CDB8", w2: "#E9AE98", st: .2, wn: "#EDBBA6", wl: "#DC9A84", bb: "#FBE6DA", f1: "#CB8F5C", f2: "#A66D44", pl: "rgba(90,45,20,.24)", rug: "#F0A9B9", rugB: "#E27E9A" }
+    : { w1: "#FFEDE3", w2: "#F8D2C0", st: .3, wn: "#F8DCCB", wl: "#EBBBA5", bb: "#FFF7F0", f1: "#DDAA74", f2: "#BC8452", pl: "rgba(110,60,25,.22)", rug: "#F7C0CC", rugB: "#EE8FA8" };
+  const sky = N ? ["#121A4A", "#343C86"] : E ? ["#7A78C6", "#FFB48E"] : ["#86C7FF", "#E2F5FF"];
+  const win = `
+    <rect x="266" y="84" width="96" height="98" rx="5" fill="#FBF3EA" stroke="#D9C2AE" stroke-width="1.4"/>
+    <rect x="272" y="90" width="84" height="86" rx="2" fill="url(#pr-sky)"/>
+    ${N ? `${[[284, 104], [300, 132], [322, 100], [346, 120], [292, 160], [338, 150]].map(([x, y], i) => `<circle class="tw" style="animation-delay:${i * .45}s" cx="${x}" cy="${y}" r="1.2" fill="#fff"/>`).join("")}
+           <g transform="translate(334 110)"><circle r="16" fill="#FFF3C4" opacity=".14"/><path d="M0 -8A8 8 0 1 0 8 3.4A6.4 6.4 0 1 1 0 -8Z" fill="#FFF3C4"/></g>`
+      : E ? `<circle cx="300" cy="160" r="20" fill="#FFE1A0" opacity=".35"/><circle cx="300" cy="160" r="11" fill="#FFD27A"/>`
+      : `<circle cx="336" cy="108" r="8" fill="#FFE27A"/><g class="cloud-slow"><ellipse cx="296" cy="116" rx="13" ry="5" fill="#fff"/><ellipse cx="306" cy="111" rx="8" ry="5.4" fill="#fff"/></g>`}
+    <path d="M272,176 L282,158 L292,166 L304,150 L318,166 L330,156 L344,168 L356,160 V176Z" fill="${N ? "#1B2152" : E ? "#B07AA0" : "#9ED08C"}"/>
+    ${N ? `<g fill="#FFD98A">${[[286, 168], [298, 162], [318, 170], [334, 164], [348, 170]].map(([x, y]) => `<rect x="${x}" y="${y}" width="2.4" height="2.4"/>`).join("")}</g>` : ""}
+    <path d="M276,172 L304,94" stroke="#fff" stroke-opacity=".12" stroke-width="10"/>
+    <rect x="312.5" y="90" width="3" height="86" fill="#FBF3EA"/><rect x="272" y="131.5" width="84" height="3" fill="#FBF3EA"/>
+    <rect x="260" y="180" width="108" height="6" rx="2" fill="#F4E7D8" stroke="#D9C2AE" stroke-width=".8"/>
+    <g><rect x="336" y="168" width="14" height="12" rx="2" fill="#C97B4A"/><path d="M343,168 q-7,-9 -3,-16 q4,6 3,16 M343,168 q7,-8 4,-15 q-5,5 -4,15" fill="#58B573"/></g>
+    <path d="M256,78 h9 q7,46 2,108 h-11Z" fill="#F4A6B8"/><path d="M372,78 h-9 q-7,46 -2,108 h11Z" fill="#F4A6B8"/>
+    <path d="M260,80 q3,50 0,104 M368,80 q-3,50 0,104" stroke="#E08AA0" stroke-width="1.2" fill="none"/>
+    <rect x="250" y="74" width="128" height="4" rx="2" fill="#8A5A3C"/>`;
+  const beam = N ? `<path d="M272,176 L356,176 L300,300 L170,300Z" fill="#AFC4FF" opacity=".07"/>`
+    : `<path d="M272,176 L356,176 L320,300 L176,300Z" fill="${E ? "#FFB070" : "#FFFFFF"}" opacity="${E ? .16 : .2}"/>`;
+  const lampOn = N || E;
+  const lamp = `
+    ${lampOn ? `<circle class="pr-glow" cx="384" cy="120" r="${N ? 120 : 90}" fill="url(#pr-glow)"/>` : ""}
+    <ellipse cx="384" cy="226" rx="12" ry="3.4" fill="#3F322D"/><rect x="382.6" y="128" width="2.8" height="98" fill="#6B5A52"/>
+    <path d="M370,128 L398,128 L391,104 L377,104Z" fill="${lampOn ? "#FFE6A6" : "#F3D9B4"}"/><path d="M370,128 L398,128 L395,122 L373,122Z" fill="${lampOn ? "#F7C96B" : "#E2C29A"}"/>`;
+  const lights = (N || E) ? `<path d="M0,22 Q120,46 240,20" stroke="#4a3a40" stroke-width="1" fill="none"/>${Array.from({ length: 10 }, (_, i) => { const t = (i + .5) / 10, x = 240 * t, y = (1 - t) * (1 - t) * 22 + 2 * t * (1 - t) * 46 + t * t * 20; return `<circle class="tw" style="animation-delay:${(i * .37) % 2}s" cx="${x.toFixed(1)}" cy="${(y + 3).toFixed(1)}" r="2.6" fill="${["#FFD98A", "#FF9DB4", "#FFE9B8"][i % 3]}"/>`; }).join("")}` : "";
+  const frames = `
+    <path d="M48,40 L36,46 M48,40 L60,46" stroke="#8A5A3C" stroke-width=".8"/>
+    <rect x="24" y="46" width="48" height="40" rx="2" fill="#FFF6EE" stroke="#A9744F" stroke-width="3"/><path d="M48 76 C30 64 36 52 44 56 C46 57 47 58 48 60 C49 58 50 57 52 56 C60 52 66 64 48 76Z" fill="#FF8FA8"/>
+    <rect x="80" y="54" width="30" height="34" rx="2" fill="#FFF6EE" stroke="#A9744F" stroke-width="3"/><circle cx="102" cy="64" r="4" fill="#FFC94D"/><path d="M83,85 q7,-12 13,-6 t11,-4 V85Z" fill="#9AD08A"/>`;
+  const name = esc((p.name || "").slice(0, 9).toUpperCase());
+  const doghouse = p.kind !== "dog" ? `
+    <ellipse cx="64" cy="232" rx="50" ry="9" fill="rgba(0,0,0,.18)"/><ellipse cx="64" cy="226" rx="46" ry="12" fill="#B47FC4"/><ellipse cx="64" cy="222" rx="34" ry="7" fill="#D7B0E3"/>` : `
+    <ellipse cx="62" cy="230" rx="62" ry="8" fill="rgba(0,0,0,.2)"/>
+    <rect x="14" y="150" width="96" height="78" fill="url(#pr-wood)"/>
+    ${[166, 182, 198, 214].map((y) => `<path d="M14,${y} H110" stroke="rgba(80,40,12,.3)" stroke-width="1.2"/>`).join("")}
+    ${[[40, 150, 166], [84, 150, 166], [30, 166, 182], [94, 166, 182], [44, 182, 198], [80, 182, 198], [26, 198, 214], [98, 198, 214], [52, 214, 228]].map(([x, a, b]) => `<path d="M${x},${a} V${b}" stroke="rgba(80,40,12,.22)"/>`).join("")}
+    <rect x="12" y="150" width="6" height="78" fill="#8E4F25"/><rect x="106" y="150" width="6" height="78" fill="#8E4F25"/>
+    <path d="M0,160 L62,104 L124,160 L116,166 L62,118 L8,166Z" fill="#B8453A"/>
+    <path d="M0,160 L62,104 L62,116 L8,166Z" fill="#fff" opacity=".12"/>
+    <path d="M14,154 L62,111 M26,152 L62,120 M110,154 L62,111 M98,152 L62,120" stroke="#8F3029" stroke-width="1" opacity=".55"/>
+    <path d="M0,160 L62,104 L124,160" stroke="#8F3029" stroke-width="3" fill="none" stroke-linejoin="round"/>
+    <path d="M36,228 V196 a26,26 0 0 1 52,0 V228Z" fill="url(#pr-door)"/>
+    <path d="M36,228 V196 a26,26 0 0 1 52,0 V228" stroke="#7A4524" stroke-width="4" fill="none"/>
+    ${name ? `<rect x="38" y="152" width="48" height="14" rx="3" fill="#F6E2C6" stroke="#8E4F25" stroke-width="1.4"/><text x="62" y="162.6" text-anchor="middle" font-size="8.6" font-weight="800" fill="#8E4F25" font-family="Nunito, system-ui, sans-serif">${name}</text>` : ""}
+    <g transform="translate(62 104)"><path d="M-9,-3 a3.2,3.2 0 1 1 3,-3.2 h12 a3.2,3.2 0 1 1 3,3.2 a3.2,3.2 0 1 1 -3,3.2 h-12 a3.2,3.2 0 1 1 -3,-3.2Z" fill="#F6E2C6" stroke="#8E4F25" stroke-width="1"/></g>
+    ${(N || E) ? [[8, 158], [20, 147], [32, 136], [44, 125], [56, 114], [68, 114], [80, 125], [92, 136], [104, 147], [116, 158]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="5" fill="${["#FFD98A", "#FF9DB4", "#FFE9B8"][i % 3]}" opacity=".22"/><circle class="tw" style="animation-delay:${(i * .37) % 2}s" cx="${x}" cy="${y}" r="2.4" fill="${["#FFD98A", "#FF9DB4", "#FFE9B8"][i % 3]}"/>`).join("") : ""}
+    ${spot === "house" ? houseSleeper(p) : ""}`;
+  const toys = `
+    <ellipse cx="128" cy="240" rx="9" ry="2.4" fill="rgba(0,0,0,.18)"/><circle cx="128" cy="232" r="8" fill="#E8495E"/><path d="M120.6,229 Q128,234 135.4,229" stroke="#fff" stroke-width="2" fill="none"/><circle cx="125" cy="228" r="2" fill="#fff" opacity=".45"/>
+    <g transform="translate(336 238)"><ellipse cx="0" cy="8" rx="20" ry="3.4" fill="rgba(0,0,0,.18)"/><path d="M-18,-2 h36 l-4,10 h-28z" fill="#5E9BE0"/><ellipse cx="0" cy="-2" rx="18" ry="4.6" fill="#7FB4EE"/><ellipse cx="0" cy="-2" rx="13.4" ry="2.8" fill="#B07A4A"/>
+      <circle cx="-5" cy="-3.4" r="2.4" fill="#8E5A36"/><circle cx="2" cy="-4" r="2.4" fill="#7B4A2B"/><circle cx="7" cy="-2.6" r="2.2" fill="#9A6038"/></g>
+    <g transform="translate(300 258) rotate(-14)"><path d="M-12,-2.6 a3.6,3.6 0 1 1 3.4,-3.6 h17.2 a3.6,3.6 0 1 1 3.4,3.6 a3.6,3.6 0 1 1 -3.4,3.6 h-17.2 a3.6,3.6 0 1 1 -3.4,-3.6Z" fill="#FFF3E2" stroke="#D9B48A" stroke-width="1"/></g>`;
+  return `
+  <svg class="pr-svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="pr-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.w1}"/><stop offset="1" stop-color="${C.w2}"/></linearGradient>
+      <linearGradient id="pr-floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.f1}"/><stop offset="1" stop-color="${C.f2}"/></linearGradient>
+      <pattern id="pr-stripe" width="26" height="10" patternUnits="userSpaceOnUse"><rect width="13" height="10" fill="#fff" opacity="${C.st}"/></pattern>
+      <linearGradient id="pr-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
+      <linearGradient id="pr-wood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B8723C"/><stop offset=".5" stop-color="#D58F55"/><stop offset="1" stop-color="#A9622F"/></linearGradient>
+      <radialGradient id="pr-door" cx=".5" cy=".7" r=".8"><stop offset="0" stop-color="#4A2E1E"/><stop offset="1" stop-color="#1C110B"/></radialGradient>
+      <radialGradient id="pr-glow"><stop offset="0" stop-color="#FFE3A0" stop-opacity="${N ? .55 : .4}"/><stop offset="1" stop-color="#FFE3A0" stop-opacity="0"/></radialGradient>
+      <radialGradient id="pr-vig" cx=".5" cy=".6" r=".8"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="${N ? .35 : .14}"/></radialGradient>
+      <linearGradient id="pr-fs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+    </defs>
+    <rect width="400" height="300" fill="${C.f2}"/>
+    ${[256, 284].map((y) => `<path d="M0,${y} H400" stroke="${C.pl}"/>`).join("")}${[[70, 246, 266], [200, 246, 266], [330, 246, 266], [130, 266, 300], [260, 266, 300]].map(([x, a, b]) => `<path d="M${x},${a} V${b}" stroke="${C.pl}"/>`).join("")}
+    <g transform="translate(0 -36)">
+    <rect width="400" height="208" fill="url(#pr-wall)"/><rect width="400" height="150" fill="url(#pr-stripe)"/>
+    <rect y="150" width="400" height="56" fill="${C.wn}"/>
+    ${Array.from({ length: 14 }, (_, i) => `<rect x="${4 + i * 29}" y="160" width="22" height="38" rx="2" fill="none" stroke="${C.wl}" stroke-width="1.2"/>`).join("")}
+    <rect y="148" width="400" height="5" fill="${C.bb}"/><rect y="200" width="400" height="8" fill="${C.bb}"/>
+    ${win}
+    <rect y="206" width="400" height="94" fill="url(#pr-floor)"/>
+    ${[220, 236, 256, 280].map((y) => `<path d="M0,${y} H400" stroke="${C.pl}"/>`).join("")}
+    ${[[60, 206, 220], [180, 206, 220], [300, 206, 220], [120, 220, 236], [240, 220, 236], [360, 220, 236], [30, 236, 256], [160, 236, 256], [290, 236, 256], [90, 256, 280], [220, 256, 280], [350, 256, 280], [150, 280, 300], [280, 280, 300]].map(([x, a, b]) => `<path d="M${x},${a} V${b}" stroke="${C.pl}"/>`).join("")}
+    <rect y="206" width="400" height="16" fill="url(#pr-fs)"/>
+    ${beam}${lamp}
+    <ellipse cx="204" cy="252" rx="128" ry="25" fill="${C.rug}"/><ellipse cx="204" cy="252" rx="128" ry="25" fill="none" stroke="${C.rugB}" stroke-width="3"/>
+    <ellipse cx="204" cy="252" rx="104" ry="19" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.4" stroke-dasharray="5 5"/>
+    ${doghouse}${toys}
+    </g>
+    <rect width="400" height="300" fill="url(#pr-vig)"/>
+  </svg>`;
+}
+
+function houseSleeper(p) {
+  const P = DOG_DEFAULT;
+  return `
+    <g class="house-sleeper">
+      <ellipse cx="62" cy="226" rx="24" ry="4" fill="#000" opacity=".35"/>
+      <g class="hs-head">
+        <path d="M47,206 C40,198 38,190 40,184 C47,186 53,192 55,198Z M77,206 C84,198 86,190 84,184 C77,186 71,192 69,198Z" fill="${P.ear[1]}"/>
+        <path d="M48,203 C44,197 43,192 44,189 C48,191 51,194 53,198Z M76,203 C80,197 81,192 80,189 C76,191 73,194 71,198Z" fill="${P.earInner}"/>
+        <ellipse cx="62" cy="210" rx="19" ry="15.5" fill="${P.fur[1]}"/>
+        <ellipse cx="58" cy="203" rx="9" ry="5" fill="${P.fur[0]}" opacity=".6"/>
+        <path d="M62,195 C59,200 59.6,206 62,211 C64.4,206 65,200 62,195Z" fill="${P.cream[0]}"/>
+        <ellipse cx="62" cy="217" rx="11" ry="8" fill="${P.cream[0]}"/>
+        <path d="M51,207 Q55,211 59,207 M65,207 Q69,211 73,207" stroke="#2A1A16" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+        <path d="M58,213 C58,210.4 66,210.4 66,213 C66,215 64,216.4 62,216.4 C60,216.4 58,215 58,213Z" fill="#2a1a17"/>
+        <ellipse cx="50" cy="214" rx="3.4" ry="2" fill="#FF8FB0" opacity=".45"/><ellipse cx="74" cy="214" rx="3.4" ry="2" fill="#FF8FB0" opacity=".45"/>
+      </g>
+      <ellipse cx="53" cy="226" rx="8" ry="4" fill="${P.cream[0]}"/><ellipse cx="71" cy="226" rx="8" ry="4" fill="${P.cream[0]}"/>
+      <path d="M50,224 v3.4 M53,223.6 v4 M56,224 v3.4 M68,224 v3.4 M71,223.6 v4 M74,224 v3.4" stroke="#C9A67E" stroke-width=".9" stroke-linecap="round"/>
+      <g class="zs" fill="#fff" font-family="Nunito, system-ui, sans-serif" font-weight="800">
+        <text x="88" y="186" font-size="10">z</text><text x="96" y="176" font-size="13">z</text><text x="106" y="164" font-size="17">Z</text>
+      </g>
+    </g>`;
 }
 
 const DOG_DEFAULT = {   // корги

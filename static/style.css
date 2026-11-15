@@ -731,3 +731,49 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 .mc-foot { margin-top: 8px; gap: 8px; }
 .mc-scene { flex: none; font-size: 12.5px; font-weight: 800; padding: 6px 11px; border-radius: 999px; border: 0; background: var(--accent-soft); color: var(--accent); }
 .mc-scene.on { background: linear-gradient(135deg, #2b2036, #4a2c48); color: #ffd3dc; }
+
+/* ===== карточка питомца: комната вместо градиента ===== */
+.pet-card.room, .pet-card.room.st-sleep, .pet-card.room.st-hungry, .pet-card.room.st-sad, .pet-card.room.st-bored, .pet-card.room.st-worried, .pet-card.room.sg-egg {
+  background: #f3d9c9; box-shadow: 0 14px 30px rgba(110, 60, 50, .22), 0 0 0 1px rgba(0,0,0,.04); }
+.pet-card.room.mode-night { background: #2e2a58; box-shadow: 0 14px 30px rgba(40, 30, 90, .35); }
+.pc-room { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.pr-svg { display: block; width: 100%; height: 100%; }
+.pr-svg .tw { animation: scTw 2.8s ease-in-out infinite; }
+.pr-svg .cloud-slow { animation: scCloud 18s ease-in-out infinite alternate; }
+.pr-svg .pr-glow { animation: scGlow 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.pet-card.room .pet-stage::before { display: none; }
+.pet-card.room .pet-stage .shadow { background: radial-gradient(closest-side, rgba(70,30,20,.32), rgba(70,30,20,0)); }
+.pet-card.room .pet-name, .pet-card.room .pet-lvl, .pet-card.room .pet-status {
+  background: rgba(255,255,255,.8); color: #3b2a35; box-shadow: 0 4px 14px rgba(70,30,40,.14), inset 0 0 0 1px rgba(255,255,255,.6); }
+.pet-card.room .pet-lvl svg { fill: #f2b84b; stroke: #e0a020; }
+.pet-card.room.mode-night .pet-name, .pet-card.room.mode-night .pet-lvl, .pet-card.room.mode-night .pet-status {
+  background: rgba(24,20,56,.62); color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.14); }
+.pet-card.room .zzz { color: #fff; }
+.pet-card.room:not(.mode-night) .zzz i { color: #8a6fb8; text-shadow: 0 2px 6px rgba(255,255,255,.6); }
+
+/* спит лёжа на коврике */
+.pet-emoji.lying { margin-bottom: 0; animation: none !important; }
+.dog-sleep { display: block; overflow: visible; width: 210px; height: auto; }
+.sg-baby .dog-sleep { width: 140px; } .sg-kid .dog-sleep { width: 176px; }
+.dog-sleep * { transform-box: view-box; }
+.dog-sleep .ds-breath { transform-origin: 120px 130px; animation: dsBreath 3.8s ease-in-out infinite; }
+.dog-sleep .ds-head { transform-origin: 120px 124px; animation: dsHead 3.8s ease-in-out infinite; }
+.dog-sleep .ds-ear-l { transform-origin: 98px 66px; animation: dsEar 7s ease-in-out infinite; }
+@keyframes dsBreath { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.045); } }
+@keyframes dsHead { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.4px); } }
+@keyframes dsEar { 0%, 88%, 100% { transform: rotate(0); } 92% { transform: rotate(-9deg); } 96% { transform: rotate(3deg); } }
+.pet-card.sleep-floor .zzz { left: 60%; top: 52px; }
+/* спит в будке */
+.pet-emoji.in-house { visibility: hidden; }
+.pet-card.sleep-house .pet-stage .shadow { display: none; }
+.pet-card.awake .house-sleeper { display: none; }
+.pet-card.awake .pet-stage .shadow { display: block; }
+.house-sleeper .hs-head { transform-box: view-box; transform-origin: 62px 224px; animation: dsBreath 3.8s ease-in-out infinite; }
+.house-sleeper .zs text { transform-box: fill-box; transform-origin: center; opacity: 0; animation: zsFloat 3s ease-in-out infinite; paint-order: stroke; stroke: rgba(60,30,60,.35); stroke-width: 2px; }
+.house-sleeper .zs text:nth-child(2) { animation-delay: 1s; } .house-sleeper .zs text:nth-child(3) { animation-delay: 2s; }
+@keyframes zsFloat { 0% { opacity: 0; transform: translate(0, 8px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(12px, -14px); } }
+.bark-bubble.shh { animation-duration: 1.4s; }
+
+/* в комнатах дома — тоже лёжа */
+.resident.lying, .resident.dogwrap.lying { width: 34%; animation: none; }
+.resident.lying .dog-sleep { width: 100%; }
