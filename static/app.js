@@ -602,7 +602,7 @@ function drawPet(p) {
       <div class="bar"><i style="width:${pct}%" class="${low ? "low" : ""}"></i></div></div>
     </div>`;
   const GROW = [["Отметить настроение", "+10", "оба за день — ещё +10"], ["Новый момент", "+15", ""], ["Сбывшаяся мечта", "+40", ""],
-    ["Записка в «Несказанном»", "+10", ""], ["Копилка, желание, новая мечта", "+5", ""], ["Покормить, погладить", "+3", "у каждого своя перезарядка"]];
+    ["Записка в «Несказанном»", "+10", ""], ["Копилка, желание, новая мечта", "+5", ""], ["Прогулка вдвоём", "+15", "один зовёт, второй подтверждает за час"], ["Покормить, погладить", "+3", "у каждого своя перезарядка"]];
   view.innerHTML = `
     <div class="pet-card room mode-${mode} st-${p.status} sg-${p.stage} ${spot ? "sleep-" + spot : ""}">
       <div class="pc-room">${petRoomSvg(p, mode, spot)}</div>
@@ -647,9 +647,9 @@ function drawPet(p) {
     try {
       const d = await api("/api/pet/walk", { method: "POST" });
       if (d.walked) {
-        success(); hearts("+25 радости", 1);
+        success(); hearts("+15 опыта", 1);
         wakePet(p)?.classList.add("act-walk");
-        toast("Погуляли вместе!");
+        toast("Погуляли вместе! +15 опыта и +25 радости");
         setTimeout(() => refreshHouse(d.pet), 2200);
       } else {
         success(); toast(`${state.me.partner.name} получит приглашение`); refreshHouse(d.pet);
@@ -726,7 +726,7 @@ const WALK_ICO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 function walkHtml(p) {
   const w = p.walk || { state: "ready" }, partner = esc(state.me.partner.name);
   const [title, sub] = {
-    ready: ["Позвать гулять", `${partner} подтвердит в течение часа — и пойдёте вместе`],
+    ready: ["Позвать гулять", `${partner} подтвердит за час — и пойдёте вместе. +15 опыта`],
     waiting: [`Ждём ${partner}`, `Приглашение ещё ${w.mins} мин`],
     invited: [`${esc(w.by || "")} зовёт гулять!`, `Нажми, чтобы пойти вместе. Осталось ${w.mins} мин`],
     cooldown: ["Уже погуляли", `${esc(p.name)} отдыхает, снова можно ${cdText((w.mins || 1) * 60)}`],

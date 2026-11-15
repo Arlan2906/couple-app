@@ -49,7 +49,7 @@ SLEEP_FROM, SLEEP_TO = 23, 7      # ночью питомец спит (по А�
 SAD_MOODS = {"😔", "😢", "😤", "🤒", "🤯", "🫠"}
 WALK_WAIT = 60 * 60               # сколько ждём, пока второй подтвердит прогулку
 WALK_COOLDOWN = 6 * 3600          # прогулка — раз в 6 часов на пару
-WALK_REWARD = (5, 25, 20)         # сытость, радость, опыт
+WALK_REWARD = (5, 25, 15)         # сытость, радость, опыт
 
 
 def utcnow() -> datetime:
@@ -285,7 +285,7 @@ async def pet_walk(user: User = Depends(paired_user), s: AsyncSession = Depends(
         s.add(PetAction(pet_id=pet.id, user_id=user.id, action="walk", at=utcnow()))
         await _gain(s, pet, *WALK_REWARD)
         if caller:
-            await notify(caller, f"{user.name} пришёл(ла) — вы погуляли с {pet.name}! +{WALK_REWARD[1]} радости",
+            await notify(caller, f"{user.name} пришёл(ла) — вы погуляли с {pet.name}! +{WALK_REWARD[2]} опыта и +{WALK_REWARD[1]} радости",
                          button="Посмотреть", tab="pet")
         return {**await load(s, user), "walked": True}
     s.add(PetAction(pet_id=pet.id, user_id=user.id, action="walk_call", at=utcnow()))
