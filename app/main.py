@@ -27,10 +27,35 @@ WEBHOOK_PATH = "/tg/webhook"
 WEBHOOK_SECRET = hashlib.sha256(f"webhook:{config.BOT_TOKEN}".encode()).hexdigest()[:48]
 
 
+KEEPALIVE_EVERY = 9 * 60          # Render free засыпает после 15 минут без входящих запросов
+KEEPALIVE_HOURS = range(7, 24)    # ночью пусть спит: так бесплатных часов Render хватает с запасом
+
+
+async def keepalive() -> None:
+    """Пингуем свой же внешний адрес: для Render это входящий запрос, и сервис не засыпает днём.
+    Утром его будит cron-job.org (08:58), дальше держится сам."""
+    import aiohttp
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo(config.TIMEZONE)
+    url = f"{config.WEBAPP_URL}/health"
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as http:
+        while True:
+            await asyncio.sleep(KEEPALIVE_EVERY)
+            if datetime.now(tz).hour not in KEEPALIVE_HOURS:
+                continue
+            try:
+                async with http.get(url) as r:
+                    log.info("keepalive %s", r.status)
+            except Exception as e:  # сеть моргнула — попробуем в следующий раз
+                log.warning("keepalive не удался: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     task = None
+    ka = asyncio.create_task(keepalive()) if config.BOT_MODE == "webhook" and config.WEBAPP_URL else None
     if bot:
         await setup_bot()
         if config.BOT_MODE == "webhook":
@@ -46,6 +71,8 @@ async def lifespan(app: FastAPI):
     else:
         log.warning("BOT_TOKEN не задан — бот не запущен (режим разработки)")
     yield
+    if ka:
+        ka.cancel()
     if task:
         await dp.stop_polling()
         task.cancel()
