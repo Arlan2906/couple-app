@@ -790,3 +790,159 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 .dog-sleep.tax .ds-ear-l { transform-origin: 90px 76px; }
 .dog-sleep.tax .ds-tail { transform-origin: 232px 100px; }
 .pet-card.sleep-floor .dog-sleep.tax ~ * {}
+
+/* ================= Кулик+: трюки, праздник уровня, гардероб, дневник, альбом ================= */
+.pet-emoji.trick { animation: none; transform-origin: 50% 100%; }
+.trick .dog .tail { animation: dogWag .22s ease-in-out infinite; }
+.trick .dog .eyes-open { display: none; } .trick .dog .eyes-happy { display: inline; }
+.trick .dog .mouth-smile { display: inline; } .trick .dog .mouth-sad, .trick .dog .brows { display: none; }
+.pet-emoji.trick-paw { animation: tPaw 1.6s ease-in-out !important; }
+.pet-emoji.trick-spin { animation: tSpin 1.2s ease-in-out !important; }
+.pet-emoji.trick-roll { animation: tRoll 1.4s cubic-bezier(.5,0,.4,1) !important; transform-origin: 50% 60%; }
+.pet-emoji.trick-fetch { animation: tHop .4s ease-in-out 3 !important; }
+.pet-emoji.trick-beg { animation: tBeg 1.7s ease-in-out !important; }
+.pet-emoji.trick-dead { animation: tDead 1.8s ease-in-out !important; transform-origin: 50% 50%; }
+.trick-dead .dog .tongue { display: inline; }
+.pet-emoji.trick-dance { animation: tDance .5s ease-in-out 3 !important; }
+.trick-sing .dog .head { animation: tSing 1.6s ease-in-out !important; }
+.trick-sing .dog .mouth-open { display: inline; } .trick-sing .dog .mouth-smile, .trick-sing .dog .tongue { display: none; }
+.pet-emoji.trick-bow { animation: tBow 1.7s ease-in-out !important; }
+.trick-bow .dog .head { animation: tBowHead 1.7s ease-in-out !important; }
+@keyframes tPaw { 0%,100% { transform: none; } 20%,80% { transform: rotate(-5deg) translateY(-4px); } }
+@keyframes tSpin { 0% { transform: scaleX(1); } 25% { transform: scaleX(0) translateY(-10px); } 50% { transform: scaleX(-1) translateY(-14px); } 75% { transform: scaleX(0) translateY(-10px); } 100% { transform: scaleX(1); } }
+@keyframes tRoll { 0% { transform: none; } 15% { transform: translateY(18px) rotate(0); } 70% { transform: translateY(18px) rotate(360deg); } 100% { transform: rotate(360deg); } }
+@keyframes tHop { 0%,100% { transform: none; } 50% { transform: translateY(-16px); } }
+@keyframes tBeg { 0%,100% { transform: none; } 25%,75% { transform: translateY(-22px) scaleY(1.06); } 40%,60% { transform: translateY(-26px) scaleY(1.06) rotate(2deg); } }
+@keyframes tDead { 0% { transform: none; } 20% { transform: translateY(-12px) rotate(-10deg); } 40%,85% { transform: translateY(22px) rotate(90deg) scale(.9); } 100% { transform: none; } }
+@keyframes tDance { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-10deg) translateY(-8px); } 75% { transform: rotate(10deg) translateY(-8px); } }
+@keyframes tSing { 0%,100% { transform: none; } 20%,80% { transform: rotate(-16deg) translateY(-6px); } }
+@keyframes tBow { 0%,100% { transform: none; } 25%,70% { transform: translateY(6px) rotate(3deg); } }
+@keyframes tBowHead { 0%,100% { transform: none; } 25%,70% { transform: rotate(18deg) translateY(10px); } }
+
+.trick-fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.fx-paw svg { position: absolute; width: 38px; left: calc(50% + 6px); bottom: 60px; animation: fxPaw 1.6s ease-in-out forwards; }
+@keyframes fxPaw { 0% { opacity: 0; transform: translate(-6px, 20px) rotate(-30deg); } 20%,80% { opacity: 1; transform: translate(10px, -4px) rotate(-10deg); } 100% { opacity: 0; } }
+.fx-fetch svg { position: absolute; width: 24px; left: calc(50% + 120px); bottom: 150px; animation: fxBall 1.2s cubic-bezier(.4,0,.6,1) forwards; }
+@keyframes fxBall { 0% { transform: translate(0,0); } 60% { transform: translate(-110px, 40px); } 100% { transform: translate(-118px, 72px); } }
+.trick-fx i { position: absolute; font-style: normal; font-weight: 800; font-size: 22px; color: #fff; text-shadow: 0 2px 6px rgba(60,20,40,.35); opacity: 0; animation: fxNote 1.6s ease-out forwards; }
+.trick-fx i:nth-child(1) { left: calc(50% - 70px); bottom: 120px; }
+.trick-fx i:nth-child(2) { left: calc(50% + 50px); bottom: 140px; animation-delay: .3s; }
+.trick-fx i:nth-child(3) { left: calc(50% - 30px); bottom: 170px; animation-delay: .6s; }
+@keyframes fxNote { 0% { opacity: 0; transform: translateY(10px) scale(.6); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px) scale(1.1) rotate(12deg); } }
+.fx-bow i { width: 10px; height: 10px; font-size: 0; background: #FFD25A; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.fx-bow i:nth-child(4) { left: calc(50% + 80px); bottom: 100px; animation-delay: .9s; }
+
+/* конверт */
+.envelope { position: absolute; left: 50%; bottom: 70px; width: 40px; z-index: 4; pointer-events: none; animation: envRun 2s ease-in forwards; }
+@keyframes envRun { 0% { opacity: 0; transform: translate(-50%, 0) scale(.6); } 15% { opacity: 1; transform: translate(-30%, -10px) scale(1); } 100% { opacity: 0; transform: translate(260%, -60px) rotate(18deg); } }
+.carry { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.carry button { border: 0; background: var(--card); border-radius: 16px; padding: 12px 4px 10px; box-shadow: var(--shadow); font: inherit; font-size: 12.5px; font-weight: 700; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.carry button span { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.carry button span svg { width: 22px; height: 22px; }
+.carry button:active { transform: scale(.96); }
+.carry button:disabled { opacity: .5; }
+.pc-bday { position: relative; z-index: 2; margin: 2px auto 0; width: fit-content; padding: 4px 12px; border-radius: 999px; background: #FF8FB0; color: #fff; font-weight: 800; font-size: 13px; }
+
+/* гардероб */
+.wardrobe { padding: 10px 14px; }
+.wr-row { padding: 6px 0; }
+.wr-row + .wr-row { border-top: 1px solid rgba(0,0,0,.06); }
+.wr-t { display: block; font-size: 13px; color: var(--hint); font-weight: 700; margin-bottom: 6px; }
+.wr-items { display: flex; flex-wrap: wrap; gap: 6px; }
+.wr-it { border: 0; font: inherit; font-size: 13.5px; font-weight: 700; padding: 7px 12px; border-radius: 999px; background: #f5eef1; color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
+.wr-it.on { background: var(--accent); color: #fff; }
+.wr-it.locked { opacity: .5; }
+.wr-it svg { width: 13px; height: 13px; }
+.wr-it small { font-size: 11px; font-weight: 700; opacity: .8; }
+.wr-hint { margin: 8px 0 2px; font-size: 13px; }
+
+/* дневник */
+.diary { padding: 6px 16px 10px; }
+.dy { padding: 10px 0; }
+.dy + .dy { border-top: 1px dashed rgba(0,0,0,.1); }
+.dy-d { font-size: 12px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .4px; }
+.dy p { margin: 3px 0 0; font-style: italic; }
+.dy-more { border: 0; background: none; font: inherit; font-weight: 800; color: var(--accent); padding: 6px 0 2px; }
+
+/* альбом */
+.album-btn { width: 100%; margin-top: 12px; border: 0; font: inherit; color: var(--text); text-align: left; background: var(--card); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; }
+.album-btn .grow { flex: 1; display: flex; flex-direction: column; }
+.album-btn small { color: var(--hint); font-weight: 600; }
+.ab-ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #FFF0D9; color: #D9822B; }
+.ab-ico svg { width: 22px; }
+.album { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; padding: 4px 2px 8px; }
+.pol { background: #fff; padding: 8px 8px 10px; border-radius: 6px; box-shadow: 0 6px 16px rgba(60,20,35,.14); transform: rotate(var(--r)); display: flex; flex-direction: column; gap: 1px; }
+.pol-ph { aspect-ratio: 1; border-radius: 3px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; background: linear-gradient(#FFE6C9, #F7C9A0); margin-bottom: 6px; }
+.pol-ph.lv1, .pol-ph.lv2 { background: linear-gradient(#FFE3EC, #F9C1D3); }
+.pol-ph.lv3, .pol-ph.lv4, .pol-ph.lv5 { background: linear-gradient(#E3F2FF, #B9DAF7); }
+.pol-ph.lv6, .pol-ph.lv7 { background: linear-gradient(#E6F7E3, #BFE6B6); }
+.pol-ph.lv8, .pol-ph.lv9, .pol-ph.lv10 { background: linear-gradient(#F1E6FF, #D5BEF7); }
+.pol-dog .dog { width: 100%; }
+.pol-dog { width: 92%; margin-bottom: -2px; }
+.pol-dog.sg-baby { width: 58%; } .pol-dog.sg-kid { width: 74%; }
+.pol-dog .dog * { animation: none !important; }
+.pol b { font-size: 14px; }
+.pol small { font-size: 12px; color: var(--hint); font-weight: 600; line-height: 1.25; }
+.pol .pol-t { color: var(--text); }
+
+/* праздник уровня */
+.lvlup { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; background: rgba(40,15,30,.55); backdrop-filter: blur(4px); animation: lvFade .3s ease; }
+.lvlup.out { opacity: 0; transition: opacity .3s; }
+@keyframes lvFade { from { opacity: 0; } }
+.lv-card { position: relative; width: 100%; max-width: 360px; overflow: hidden; text-align: center; border-radius: 26px; padding: 22px 20px 18px; background: linear-gradient(170deg, #FFE3A3, #FF9DB4 60%, #C9A7FF); color: #3a1a2a; box-shadow: 0 20px 60px rgba(40,10,30,.35); animation: lvPop .5s cubic-bezier(.3,1.5,.5,1); }
+@keyframes lvPop { from { transform: scale(.6); opacity: 0; } }
+.lv-rays { position: absolute; left: 50%; top: 110px; width: 520px; height: 520px; margin: -260px 0 0 -260px; background: repeating-conic-gradient(rgba(255,255,255,.28) 0 10deg, transparent 10deg 20deg); animation: lvSpin 14s linear infinite; pointer-events: none; }
+@keyframes lvSpin { to { transform: rotate(360deg); } }
+.lv-dog { position: relative; height: 170px; display: flex; justify-content: center; align-items: flex-end; animation: lvJump .7s ease-in-out infinite; }
+.lv-dog .dog { width: 150px; }
+@keyframes lvJump { 0%,100% { transform: translateY(0) scaleY(1); } 15% { transform: translateY(2px) scaleY(.94); } 50% { transform: translateY(-26px) scaleY(1.04); } }
+.lv-dog .dog .eyes-open { display: none; } .lv-dog .dog .eyes-happy, .lv-dog .dog .tongue { display: inline; }
+.lv-badge { position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 3px; background: #fff; color: #E0A11B; font-weight: 800; font-size: 18px; padding: 4px 10px 4px 7px; border-radius: 999px; box-shadow: 0 4px 10px rgba(0,0,0,.12); }
+.lv-badge svg { width: 18px; }
+.lv-card h2 { position: relative; display: block; margin: 8px 0 4px; font-size: 30px; color: #fff; text-shadow: 0 2px 10px rgba(150,30,80,.35); }
+.lv-card > p { position: relative; margin: 0 0 8px; font-weight: 700; }
+.lv-sec { position: relative; margin: 10px 0 0; }
+.lv-sec b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; opacity: .75; margin-bottom: 5px; }
+.lv-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.lv-chips span { background: rgba(255,255,255,.85); padding: 6px 12px; border-radius: 999px; font-weight: 800; font-size: 14px; }
+.lv-ok { position: relative; margin-top: 16px; width: 100%; border: 0; border-radius: 16px; padding: 14px; font: inherit; font-size: 17px; font-weight: 800; color: #fff; background: #ff5c8a; box-shadow: 0 6px 16px rgba(255,92,138,.45); }
+.lv-card small { position: relative; display: block; margin-top: 8px; font-weight: 700; }
+.lv-card .muted { color: #6a4050; }
+.lv-conf { position: absolute; inset: 0; pointer-events: none; }
+.lv-conf i { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px; animation: lvConf 3s linear infinite; }
+.lv-conf i:nth-child(4n+1) { background: #FFD25A; } .lv-conf i:nth-child(4n+2) { background: #7FC8F8; } .lv-conf i:nth-child(4n+3) { background: #fff; } .lv-conf i:nth-child(4n) { background: #9BE08A; }
+.lv-conf i:nth-child(1) { left: 0%; animation-delay: 0.00s; animation-duration: 2.40s; }
+.lv-conf i:nth-child(2) { left: 37%; animation-delay: 0.27s; animation-duration: 2.75s; }
+.lv-conf i:nth-child(3) { left: 74%; animation-delay: 0.54s; animation-duration: 3.10s; }
+.lv-conf i:nth-child(4) { left: 11%; animation-delay: 0.81s; animation-duration: 3.45s; }
+.lv-conf i:nth-child(5) { left: 48%; animation-delay: 1.08s; animation-duration: 3.80s; }
+.lv-conf i:nth-child(6) { left: 85%; animation-delay: 1.35s; animation-duration: 2.40s; }
+.lv-conf i:nth-child(7) { left: 22%; animation-delay: 1.62s; animation-duration: 2.75s; }
+.lv-conf i:nth-child(8) { left: 59%; animation-delay: 1.89s; animation-duration: 3.10s; }
+.lv-conf i:nth-child(9) { left: 96%; animation-delay: 2.16s; animation-duration: 3.45s; }
+.lv-conf i:nth-child(10) { left: 33%; animation-delay: 2.43s; animation-duration: 3.80s; }
+.lv-conf i:nth-child(11) { left: 70%; animation-delay: 2.70s; animation-duration: 2.40s; }
+.lv-conf i:nth-child(12) { left: 7%; animation-delay: 2.97s; animation-duration: 2.75s; }
+.lv-conf i:nth-child(13) { left: 44%; animation-delay: 0.24s; animation-duration: 3.10s; }
+.lv-conf i:nth-child(14) { left: 81%; animation-delay: 0.51s; animation-duration: 3.45s; }
+.lv-conf i:nth-child(15) { left: 18%; animation-delay: 0.78s; animation-duration: 3.80s; }
+.lv-conf i:nth-child(16) { left: 55%; animation-delay: 1.05s; animation-duration: 2.40s; }
+.lv-conf i:nth-child(17) { left: 92%; animation-delay: 1.32s; animation-duration: 2.75s; }
+.lv-conf i:nth-child(18) { left: 29%; animation-delay: 1.59s; animation-duration: 3.10s; }
+.lv-conf i:nth-child(19) { left: 66%; animation-delay: 1.86s; animation-duration: 3.45s; }
+.lv-conf i:nth-child(20) { left: 3%; animation-delay: 2.13s; animation-duration: 3.80s; }
+.lv-conf i:nth-child(21) { left: 40%; animation-delay: 2.40s; animation-duration: 2.40s; }
+.lv-conf i:nth-child(22) { left: 77%; animation-delay: 2.67s; animation-duration: 2.75s; }
+.lv-conf i:nth-child(23) { left: 14%; animation-delay: 2.94s; animation-duration: 3.10s; }
+.lv-conf i:nth-child(24) { left: 51%; animation-delay: 0.21s; animation-duration: 3.45s; }
+@keyframes lvConf { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(560px) rotate(540deg); opacity: .8; } }
+
+/* погода в окне, торт */
+.wx-snow { animation: wxSnow 3s linear infinite; }
+@keyframes wxSnow { from { transform: translate(0, -10px); } to { transform: translate(-8px, 100px); } }
+.wx-rain { animation: wxRain .8s linear infinite; }
+@keyframes wxRain { from { transform: translate(0, -12px); } to { transform: translate(-10px, 96px); } }
+.wx-flash { opacity: 0; animation: wxFlash 6s infinite; }
+@keyframes wxFlash { 0%, 90%, 94%, 100% { opacity: 0; } 91%, 93% { opacity: .8; } }
+.cake .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flame .5s ease-in-out infinite alternate; }
+@keyframes flame { to { transform: scale(.8, 1.15); } }

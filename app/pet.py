@@ -16,7 +16,7 @@ from sqlalchemy import select
 from . import config
 from .auth import paired_user
 from .bot import notify
-from .db import AsyncSession, Mood, Pet, PetAction, User, get_session
+from .db import AsyncSession, Mood, Pet, PetAction, PetLevel, User, get_session
 
 router = APIRouter(prefix="/api/pet")
 
@@ -126,11 +126,20 @@ async def _gain(s: AsyncSession, pet: Pet, food: float, joy: float, xp: int) -> 
     pet.joy = min(100.0, pet.joy + joy)
     pet.xp += xp
     await s.commit()
+    new_level = level_for(pet.xp) if stage_for(pet.xp) != "egg" else 0
+    first = 1 if was_egg else old_level + 1
+    if new_level >= first:  # запоминаем дату каждого нового уровня для альбома
+        have = set((await s.execute(select(PetLevel.level).where(PetLevel.pet_id == pet.id))).scalars())
+        for lv in range(first, new_level + 1):
+            if lv not in have:
+                s.add(PetLevel(pet_id=pet.id, level=lv, at=utcnow()))
+        await s.commit()
     news = None
     if was_egg and stage_for(pet.xp) != "egg":
         news = f"Ура! {pet.name} вылупился!\nТеперь его нужно кормить и гладить."
     elif not was_egg and level_for(pet.xp) > old_level:
-        news = f"{pet.name} вырос до {level_for(pet.xp)} уровня!"
+        from .kulik import level_news  # локально: kulik импортирует pet
+        news = f"{pet.name} вырос до {level_for(pet.xp)} уровня!" + level_news(old_level, level_for(pet.xp))
         if stage_for(pet.xp) != stage_for(pet.xp - xp):
             news += " Смотрите, как он изменился"
     if news:
@@ -208,7 +217,10 @@ async def load(s: AsyncSession, user: User) -> dict:
                                .order_by(PetAction.at.desc()).limit(30))).scalars().all()
     mem = await members(s, user.couple_id)
     names = {m.id: m.name for m in mem}
-    return {"pet": pet_out(pet, user, actions, names, await mood_ctx(s, user.couple_id, mem)), "kinds": KINDS}
+    out = pet_out(pet, user, actions, names, await mood_ctx(s, user.couple_id, mem))
+    from .kulik import extras  # локально: kulik импортирует pet
+    out.update(await extras(s, pet, user))
+    return {"pet": out, "kinds": KINDS}
 
 
 async def mood_ctx(s: AsyncSession, couple_id: int, mem: list[User]) -> dict:

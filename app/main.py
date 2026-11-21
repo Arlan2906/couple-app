@@ -15,6 +15,7 @@ from .reminders import router as reminders_router
 from .pet import router as pet_router
 from .notes import router as notes_router
 from .house import router as house_router
+from .kulik import router as kulik_router
 from .bot import bot, dp, setup_bot
 from .db import init_db
 
@@ -86,6 +87,7 @@ app.include_router(reminders_router)
 app.include_router(pet_router)
 app.include_router(notes_router)
 app.include_router(house_router)
+app.include_router(kulik_router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
