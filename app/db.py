@@ -38,6 +38,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # Telegram user id
     name: Mapped[str] = mapped_column(String(128))
     couple_id: Mapped[int | None] = mapped_column(ForeignKey("couples.id"), nullable=True)
+    pet_seen_level: Mapped[int | None] = mapped_column(Integer, default=0, nullable=True)  # до какого уровня видел праздник
 
 
 class Moment(Base):
@@ -120,6 +121,18 @@ class Pet(Base):
     xp: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime)   # когда последний раз пересчитывали убывание (UTC)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    outfit_head: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    outfit_neck: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+
+class PetLevel(Base):
+    """Когда питомец достиг уровня — для альбома «Как рос»"""
+    __tablename__ = "pet_levels"
+    __table_args__ = (UniqueConstraint("pet_id", "level"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    level: Mapped[int] = mapped_column(Integer)
+    at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class PetAction(Base):

@@ -545,7 +545,8 @@ const bucketCard = (b) => `
 /* ---------- Питомец ---------- */
 const KIND_NAMES = { cat: "Котик", dog: "Пёсик", fox: "Лисёнок", panda: "Панда", bunny: "Зайка", hamster: "Хомяк", penguin: "Пингвин", dragon: "Дракоша" };
 const STAGE_NAMES = { egg: "яйцо", baby: "малыш", kid: "подросток", adult: "взрослый", legend: "легенда" };
-const ACT_NAMES = { feed: "покормил(а)", pet: "погладил(а)", walk_call: "позвал(а) гулять", walk: "пришёл(ла) на прогулку — погуляли вместе" };
+const ACT_NAMES = { feed: "покормил(а)", pet: "погладил(а)", walk_call: "позвал(а) гулять", walk: "пришёл(ла) на прогулку — погуляли вместе",
+  carry_kiss: "передал(а) воздушный поцелуй", carry_miss: "передал(а) «скучаю»", carry_hug: "передал(а) обнимашки", carry_love: "передал(а) «люблю»" };
 const ago = (m) => (m < 1 ? "только что" : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.floor(m / 60)} ч назад` : `${Math.floor(m / 1440)} дн назад`);
 const cdText = (sec) => (sec >= 3600 ? `через ${Math.floor(sec / 3600)} ч ${Math.ceil((sec % 3600) / 60)} мин` : `через ${Math.max(1, Math.ceil(sec / 60))} мин`);
 
@@ -609,11 +610,12 @@ function drawPet(p) {
       <div class="pet-top"><button class="pet-name" id="rename">${esc(p.name)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
         <span class="pet-lvl">${ICO.xp}${egg ? "яйцо" : `ур. ${p.level} · ${STAGE_NAMES[p.stage]}`}</span></div>
       <div class="pet-stage" id="petTap">
-        ${p.stage === "legend" ? `<div class="crown">👑</div>` : ""}
+        ${p.stage === "legend" && p.kind !== "dog" ? `<div class="crown">👑</div>` : ""}
         ${p.status === "sleep" && spot !== "house" ? `<div class="zzz"><i>z</i><i>z</i><i>Z</i></div>` : ""}
         <div class="pet-emoji ${!egg && p.kind === "dog" ? "dogwrap" : ""} ${spot === "floor" && p.kind === "dog" ? "lying" : ""} ${spot === "house" ? "in-house" : ""}">${egg ? "🥚" : spot === "floor" && p.kind === "dog" ? dogSleepSvg() : petFigure(p)}</div>
         <div class="shadow"></div>
       </div>
+      ${p.birthday ? `<div class="pc-bday">${esc(p.birthday.text)}</div>` : ""}
       <div class="pet-status">${esc(p.status_text)}</div>
     </div>
     <div class="card stats-card">
@@ -624,8 +626,12 @@ function drawPet(p) {
       ${egg ? btn("pet", ICO.sun + "Согреть") : btn("feed", ICO.food + "Покормить") + btn("pet", ICO.joy + "Погладить")}
     </div>
     ${egg ? "" : walkHtml(p)}
+    ${egg ? "" : carryHtml(p)}
     ${memoryHtml(p)}
     ${houseHtml(p)}
+    ${egg || p.kind !== "dog" ? "" : wardrobeHtml(p)}
+    ${egg ? "" : `<h2>Дневник <small>пишет ${esc(p.name)}</small></h2><div class="card diary" id="diary"><p class="muted">Листаю дневник…</p></div>
+    <button class="album-btn" id="album"><span class="ab-ico">${ICO.book}</span><span class="grow"><b>Альбом «Как рос ${esc(p.name)}»</b><small>${p.level} ${plural(p.level, "снимок", "снимка", "снимков")} — по одному на каждый уровень</small></span><span class="ct-chev">›</span></button>`}
     <h2>Как ${esc(p.name)} растёт</h2>
     <div class="card grow-list">
       ${GROW.map(([t, v, n]) => `<div class="g-row"><span class="g-t">${t}${n ? `<small>${n}</small>` : ""}</span><b class="g-v">${v}</b></div>`).join("")}
@@ -664,6 +670,12 @@ function drawPet(p) {
       $("#petTap").appendChild(bub); setTimeout(() => bub.remove(), 1400);
       return;
     }
+    if (e.classList.contains("dogwrap") && p.tricks?.length) {
+      if (e.dataset.trick) return;
+      state.trickIdx = ((state.trickIdx ?? -1) + 1) % p.tricks.length;
+      doTrick(p.tricks[state.trickIdx]);
+      return;
+    }
     if (e.classList.contains("dogwrap")) {
       if (e.classList.contains("bark")) return;
       e.classList.add("bark");
@@ -674,6 +686,29 @@ function drawPet(p) {
     }
     e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing");
   };
+  view.querySelectorAll("[data-carry]").forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const d = await api("/api/kulik/carry", { method: "POST", json: { kind: b.dataset.carry } });
+      success();
+      const env = document.createElement("div"); env.className = "envelope";
+      env.innerHTML = `<svg viewBox="0 0 40 28"><rect x="1" y="1" width="38" height="26" rx="4" fill="#fff" stroke="#E8A3B4" stroke-width="2"/><path d="M2 3 L20 16 L38 3" stroke="#E8A3B4" stroke-width="2" fill="none"/><path d="M20 22 c-3-2.4-4-4-2.4-5.2 1-.7 2-.3 2.4.4.4-.7 1.4-1.1 2.4-.4 1.6 1.2.6 2.8-2.4 5.2z" fill="#FF5F7E"/></svg>`;
+      $("#petTap").appendChild(env);
+      wakePet(p)?.classList.add("act-walk");
+      toast(`Конверт в пути — ${state.me.partner.name} скоро получит`);
+      setTimeout(() => refreshHouse(d.pet), 2000);
+    } catch { b.disabled = false; }
+  }));
+  view.querySelectorAll("[data-wear]").forEach((b) => (b.onclick = async () => {
+    if (b.dataset.lock) return toast(`Откроется на ${b.dataset.lock} уровне`);
+    const [slot, item] = b.dataset.wear.split(":");
+    haptic();
+    const d = await api("/api/kulik/outfit", { method: "PATCH", json: { slot, item: item || null } });
+    refreshHouse(d.pet);
+  }));
+  $("#album")?.addEventListener("click", () => { haptic(); openAlbum(p); });
+  fillDiary(p);
+  showLevelUp(p);
   view.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => {
     const r = state.house?.house?.rooms.find((x) => x.id === b.dataset.room);
     if (!r?.unlocked) return toast(`Откроется на ${r.level} уровне`);
@@ -864,7 +899,174 @@ function updateBadges() {
 // Каждая часть тела — отдельная группа, её двигает CSS (.dog .tail, .head, .ear-l …).
 // Поведение зависит от классов на обёртке: st-happy / st-hungry / st-sad / st-bored, act-feed, act-pet, bark.
 function petFigure(p) {
-  return p.kind === "dog" ? dogSvg() : p.emoji;
+  return p.kind === "dog" ? dogSvg(outfitOf(p)) : p.emoji;
+}
+
+/* ---------- гардероб: вещи на таксе (координаты сидящей таксы 200x220) ---------- */
+function headWear(id) {
+  switch (id) {
+    case "cap": return `<g class="wear"><path d="M70 36 C 70 10, 130 10, 130 36Z" fill="#E2483D"/><path d="M100 13 V36 M84 16 Q86 26 86 36 M116 16 Q114 26 114 36" stroke="#B9322A" stroke-width="1.2" fill="none"/>
+      <circle cx="100" cy="13" r="3" fill="#B9322A"/><path d="M72 34 Q100 48 128 34 Q100 40 72 34Z" fill="#B9322A"/><path d="M78 24 Q86 16 96 15" stroke="#fff" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/></g>`;
+    case "glasses": return `<g class="wear"><g fill="rgba(170,215,255,.28)" stroke="#2a1a14" stroke-width="2.6"><circle cx="84" cy="60" r="11.5"/><circle cx="116" cy="60" r="11.5"/></g>
+      <path d="M95.5 59 Q100 55 104.5 59 M72.6 57 L64 52 M127.4 57 L136 52" stroke="#2a1a14" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M78 54 l4 -3 M110 54 l4 -3" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".8"/></g>`;
+    case "santa": return `<g class="wear"><path d="M72 32 C 80 8, 112 -4, 140 4 C 132 10, 128 20, 128 32Z" fill="#D9343F"/><path d="M84 14 C 96 6, 112 2, 126 4" stroke="#fff" stroke-opacity=".25" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <rect x="66" y="26" width="68" height="12" rx="6" fill="#FFF8F0"/><circle cx="143" cy="6" r="7" fill="#FFF8F0"/></g>`;
+    case "flower": return `<g class="wear" transform="translate(128 34)">${[0, 72, 144, 216, 288].map((a) => `<ellipse cx="0" cy="-6" rx="4.4" ry="6.4" fill="#FF8FB0" transform="rotate(${a})"/>`).join("")}
+      <circle r="4" fill="#FFD25A"/><path d="M-4 6 q-8 4 -12 0 q6 -6 12 0Z" fill="#58B573"/></g>`;
+    case "crown": return `<g class="wear"><path d="M76 30 L80 6 L91 20 L100 2 L109 20 L120 6 L124 30Z" fill="#FFD25A" stroke="#C99416" stroke-width="1.6" stroke-linejoin="round"/>
+      <rect x="75" y="26" width="50" height="8" rx="2" fill="#F2B83A" stroke="#C99416" stroke-width="1.2"/><circle cx="100" cy="30" r="2.6" fill="#E2483D"/><circle cx="86" cy="30" r="2" fill="#4EA6E0"/><circle cx="114" cy="30" r="2" fill="#4EA6E0"/>
+      <circle cx="80" cy="6" r="2.2" fill="#FFF3C4"/><circle cx="100" cy="2" r="2.4" fill="#FFF3C4"/><circle cx="120" cy="6" r="2.2" fill="#FFF3C4"/></g>`;
+    case "party": return `<g class="wear"><path d="M84 30 L102 -10 L118 30Z" fill="#7FC8F8"/><path d="M90 16 L111 16 M86 24 L116 24 M95 6 L107 6" stroke="#FF8FB0" stroke-width="4"/>
+      <circle cx="102" cy="-11" r="5" fill="#FFD25A"/><path d="M84 30 Q100 36 118 30" stroke="#fff" stroke-width="2" fill="none"/></g>`;
+    default: return "";
+  }
+}
+function neckWear(id) {
+  switch (id) {
+    case "bandana": return `<g class="wear"><path d="M72 116 Q100 134 128 116 L100 156Z" fill="#3A7BD5"/><path d="M72 116 Q100 134 128 116 L126 122 Q100 140 74 122Z" fill="#2E62AC"/>
+      ${[[92, 132], [106, 132], [99, 144], [86, 124], [114, 124]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.8" fill="#fff"/>`).join("")}</g>`;
+    case "scarf": return `<g class="wear"><path d="M68 112 Q100 136 132 112 L134 124 Q100 150 66 124Z" fill="#E24A5E"/><path d="M71 117 Q100 140 129 117" stroke="#fff" stroke-width="2.2" fill="none" opacity=".8"/>
+      <path d="M112 130 l10 -2 l6 34 l-10 2Z" fill="#E24A5E"/><path d="M114 140 l9 -1.6 M116 150 l9 -1.6" stroke="#fff" stroke-width="2" opacity=".8"/><path d="M118 164 v5 M121 163.6 v5 M124 163 v5 M127 162.4 v5" stroke="#E24A5E" stroke-width="1.6" stroke-linecap="round"/></g>`;
+    case "bow": return `<g class="wear" transform="translate(100 130)"><path d="M0 0 L-16 -9 Q-20 0 -16 9Z M0 0 L16 -9 Q20 0 16 9Z" fill="#E24A5E"/><path d="M-13 -5 l3 2 M13 -5 l-3 2" stroke="#fff" stroke-width="1.4" opacity=".7"/><rect x="-4" y="-5" width="8" height="10" rx="3" fill="#C2334A"/></g>`;
+    case "sweater": return ""; // рисуется отдельно поверх туловища
+    default: return "";
+  }
+}
+const SWEATER = `<g class="wear"><path d="M64 142 C 64 118, 80 106, 100 106 C 120 106, 136 118, 136 142 C 138 160, 136 172, 134 182 L66 182 C 64 172, 62 160, 64 142Z" fill="#7C9BE6"/>
+  ${[74, 82, 90, 110, 118, 126].map((x) => `<path d="M${x} 122 V180" stroke="#6A88D4" stroke-width="2"/>`).join("")}
+  <path d="M100 150 C 90 140 92 132 98 134 L100 136 L102 134 C 108 132 110 140 100 150Z" fill="#FF8FB0"/>
+  <path d="M66 176 H134" stroke="#5E7CC8" stroke-width="6"/><path d="M72 112 Q100 132 128 112 L130 122 Q100 142 70 122Z" fill="#5E7CC8"/></g>`;
+
+// что сейчас надето с учётом праздника и погоды
+function outfitOf(p) {
+  const o = p.outfit || {};
+  const cold = p.weather && (p.weather.kind === "snow" || p.weather.temp <= 0);
+  return { head: p.birthday ? "party" : o.head, neck: o.neck || (cold ? "scarf" : null) };
+}
+
+/* ---------- трюки ---------- */
+const TRICK_BUBBLE = { paw: "Лапу!", spin: "Кружусь!", roll: "Опа!", fetch: "Принёс!", beg: "Служу!", dead: "Бах!", dance: "Танцую!", sing: "Ау-у-у!", bow: "Мерси!" };
+const PAW_SVG = `<svg viewBox="0 0 40 30"><ellipse cx="20" cy="16" rx="17" ry="12" fill="#F2AE70"/><path d="M12 10 v10 M20 8 v12 M28 10 v10" stroke="#B8582A" stroke-width="1.6" stroke-linecap="round" opacity=".6"/></svg>`;
+const BALL_SVG = `<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="#E8495E"/><path d="M3 12 Q15 20 27 12" stroke="#fff" stroke-width="2.6" fill="none"/><circle cx="10" cy="9" r="3" fill="#fff" opacity=".45"/></svg>`;
+function doTrick(t) {
+  const stage = $("#petTap"), e = $(".pet-emoji");
+  if (!e || e.dataset.trick) return;
+  e.dataset.trick = t.id;
+  e.classList.add("trick", `trick-${t.id}`);
+  const bub = document.createElement("span"); bub.className = "bark-bubble"; bub.textContent = TRICK_BUBBLE[t.id] || "Гав!";
+  stage.appendChild(bub);
+  const extra = document.createElement("div"); extra.className = `trick-fx fx-${t.id}`;
+  extra.innerHTML = t.id === "paw" ? PAW_SVG : t.id === "fetch" ? BALL_SVG : (t.id === "sing" || t.id === "dance") ? "<i>♪</i><i>♫</i><i>♪</i>" : t.id === "bow" ? "<i></i><i></i><i></i><i></i>" : "";
+  if (extra.innerHTML) stage.appendChild(extra);
+  setTimeout(() => { bub.remove(); extra.remove(); e.classList.remove("trick", `trick-${t.id}`); delete e.dataset.trick; }, 1900);
+}
+
+/* ---------- праздник нового уровня ---------- */
+function showLevelUp(p) {
+  const L = p.levelup;
+  if (!L || p.stage === "egg" || $(".lvlup")) return;
+  const chips = (title, items, fmt) => items.length ? `<div class="lv-sec"><b>${title}</b><div class="lv-chips">${items.map(fmt).join("")}</div></div>` : "";
+  const box = document.createElement("div");
+  box.className = "lvlup";
+  box.innerHTML = `
+    <div class="lv-card">
+      <div class="lv-conf">${"<i></i>".repeat(24)}</div>
+      <div class="lv-rays"></div>
+      <div class="lv-dog">${petFigure(p)}</div>
+      <div class="lv-badge">${ICO.xp}<span>${L.to}</span></div>
+      <h2>Уровень ${L.to}!</h2>
+      <p>${esc(p.name)} ${L.to - L.from > 1 ? `вырос сразу на ${L.to - L.from} ${plural(L.to - L.from, "уровень", "уровня", "уровней")}` : "вырос"}. Вот что открылось:</p>
+      ${chips("Новые трюки", L.tricks, (t) => `<span>${esc(t.name)}</span>`)}
+      ${chips("В гардеробе", L.clothes, (c) => `<span>${esc(c.name)}</span>`)}
+      ${chips("Новые комнаты", L.rooms, (r) => `<span>${esc(r.name)}</span>`)}
+      ${!L.tricks.length && !L.clothes.length && !L.rooms.length ? `<p class="muted">Новый трюк и вещи ждут на следующих уровнях</p>` : ""}
+      <button class="lv-ok">Ура!</button>
+      ${L.tricks.length ? `<small class="muted">Нажми на него в комнате — покажет трюки</small>` : ""}
+    </div>`;
+  document.body.appendChild(box);
+  success();
+  box.querySelector(".lv-ok").onclick = async () => {
+    box.classList.add("out"); setTimeout(() => box.remove(), 300);
+    try { await api("/api/kulik/seen", { method: "POST" }); } catch {}
+    p.levelup = null;
+  };
+}
+
+/* ---------- через Кулика, гардероб, дневник, альбом ---------- */
+const CARRY_ICO = {
+  kiss: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c2-3 5-4 8-2 3-2 6-1 8 2-2 3-5 5-8 5s-6-2-8-5z"/><path d="M4 12h16"/></svg>`,
+  miss: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 15c1.2-1.2 2.5-1.6 4-1.6s2.8.4 4 1.6M9 9.5h.01M15 9.5h.01"/><path d="M16.5 11.5c.6 1 .6 1.8 0 2.4"/></svg>`,
+  hug: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M3 20c0-4 2.5-7 5-7s3 1.5 4 3c1-1.5 1.5-3 4-3s5 3 5 7"/></svg>`,
+  love: ICO_HEART_SM(),
+};
+function ICO_HEART_SM() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10.4A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.5c0 5.8-7.5 10.4-7.5 10.4z"/></svg>`; }
+const CARRY_LABEL = { kiss: "Поцелуй", miss: "Скучаю", hug: "Обнимашки", love: "Люблю" };
+
+function carryHtml(p) {
+  return `<h2>${esc(p.name)} — почтальон <small>передаст за вас</small></h2>
+    <div class="carry">${Object.keys(CARRY_LABEL).map((k) => `<button data-carry="${k}"><span>${CARRY_ICO[k]}</span>${CARRY_LABEL[k]}</button>`).join("")}</div>`;
+}
+function wardrobeHtml(p) {
+  const o = p.outfit || {};
+  const row = (slot, title) => {
+    const items = p.wardrobe.filter((w) => w.slot === slot);
+    return `<div class="wr-row"><span class="wr-t">${title}</span><div class="wr-items">
+      <button class="wr-it ${!o[slot] ? "on" : ""}" data-wear="${slot}:">Ничего</button>
+      ${items.map((w) => `<button class="wr-it ${o[slot] === w.id ? "on" : ""} ${w.unlocked ? "" : "locked"}" data-wear="${slot}:${w.id}" ${w.unlocked ? "" : `data-lock="${w.level}"`}>${w.unlocked ? "" : LOCK}${esc(w.name)}${w.unlocked ? "" : `<small>ур. ${w.level}</small>`}</button>`).join("")}
+    </div></div>`;
+  };
+  const hint = [p.birthday ? "сегодня праздник — колпак сверху" : "", outfitOf(p).neck === "scarf" && !o.neck ? "на улице холодно — сам надел шарф" : ""].filter(Boolean).join(", ");
+  return `<h2>Гардероб</h2><div class="card wardrobe">${row("head", "На голову")}${row("neck", "На шею")}${hint ? `<p class="muted wr-hint">${hint}</p>` : ""}</div>`;
+}
+const dayLabel = (iso, today) => {
+  const diff = Math.round((Date.parse(today) - Date.parse(iso)) / 864e5);
+  return diff === 0 ? "Сегодня" : diff === 1 ? "Вчера" : fmtDate(iso);
+};
+async function fillDiary(p) {
+  const box = $("#diary");
+  if (!box) return;
+  try {
+    const d = await api("/api/kulik/diary");
+    if (!$("#diary")) return;
+    const today = d.days[0]?.date;
+    const html = (list) => list.map((x) => `<div class="dy"><span class="dy-d">${dayLabel(x.date, today)}</span><p>${esc(x.text)}</p></div>`).join("");
+    box.innerHTML = d.days.length ? html(d.days.slice(0, 2)) + (d.days.length > 2 ? `<button class="dy-more">Ещё ${d.days.length - 2} ${plural(d.days.length - 2, "день", "дня", "дней")}</button>` : "") : `<p class="muted">Пока пусто</p>`;
+    box.querySelector(".dy-more")?.addEventListener("click", () => { haptic(); box.innerHTML = html(d.days); });
+  } catch { box.innerHTML = `<p class="muted">Не загрузилось</p>`; }
+}
+async function openAlbum(p) {
+  const d = await api("/api/kulik/album");
+  const cards = d.levels.slice().reverse().map((l, i) => `
+    <div class="pol" style="--r:${(i % 2 ? 1.6 : -1.4)}deg">
+      <div class="pol-ph lv${l.level}"><div class="pol-dog sg-${l.stage}">${dogSvg({ head: l.cloth_id && ["cap", "glasses", "santa", "flower", "crown"].includes(l.cloth_id) ? l.cloth_id : null,
+        neck: l.cloth_id && ["bandana", "scarf", "bow", "sweater"].includes(l.cloth_id) ? l.cloth_id : null })}</div></div>
+      <b>Уровень ${l.level}</b>
+      <small>${l.date ? fmtDate(l.date) : "ещё до альбома"}</small>
+      ${l.trick ? `<small class="pol-t">научился: ${esc(l.trick)}</small>` : l.level === 1 ? `<small class="pol-t">вылупился</small>` : ""}
+    </div>`).join("");
+  openInfo(`<h3>Как рос ${esc(d.name || p.name)}</h3><div class="album">${cards}</div>`);
+}
+
+/* ---------- погода и праздник в комнате ---------- */
+function windowWeather(w) {
+  if (!w) return "";
+  const flakes = (n, cls, mk) => Array.from({ length: n }, (_, i) => mk(i, `${cls}" style="animation-delay:${(i * .37 % 3).toFixed(2)}s;animation-duration:${(2.4 + (i % 4) * .5).toFixed(1)}s`)).join("");
+  if (w.kind === "snow") return `<g clip-path="url(#pr-win)">${flakes(18, "wx-snow", (i, c) => `<circle class="${c}" cx="${274 + (i * 23) % 82}" cy="${84 + (i * 13) % 20}" r="${1.4 + (i % 3) * .5}" fill="#fff"/>`)}</g><rect x="262" y="178" width="104" height="4" rx="2" fill="#fff"/>`;
+  if (w.kind === "rain" || w.kind === "storm") return `<g clip-path="url(#pr-win)">${w.kind === "storm" ? `<rect class="wx-flash" x="272" y="90" width="84" height="86" fill="#fff"/>` : ""}${flakes(16, "wx-rain", (i, c) => `<path class="${c}" d="M${280 + (i * 19) % 76} ${86 + (i * 11) % 16} l-3 9" stroke="#fff" stroke-opacity=".85" stroke-width="1.6" stroke-linecap="round"/>`)}</g>`;
+  if (w.kind === "fog") return `<rect x="272" y="90" width="84" height="86" fill="#fff" opacity=".45"/>`;
+  if (w.kind === "cloud") return `<g class="cloud-slow" opacity=".95"><ellipse cx="300" cy="104" rx="16" ry="6" fill="#E6E9F2"/><ellipse cx="314" cy="99" rx="10" ry="6" fill="#E6E9F2"/><ellipse cx="338" cy="120" rx="12" ry="4.6" fill="#DADFEA"/></g>`;
+  return "";
+}
+function bdayCake(b) {
+  if (!b) return "";
+  const n = b.kind === "year" ? Math.min(b.n, 5) : Math.min(b.n, 5);
+  const cs = Array.from({ length: n }, (_, i) => 290 - (n - 1) * 5 + i * 10);
+  return `<g class="cake"><ellipse cx="290" cy="236" rx="30" ry="5" fill="rgba(0,0,0,.18)"/><ellipse cx="290" cy="232" rx="28" ry="5" fill="#fff"/>
+    <rect x="268" y="206" width="44" height="26" rx="5" fill="#FF9DB4"/><rect x="276" y="192" width="28" height="16" rx="4" fill="#FFC6D3"/>
+    <path d="M268 214 q5 5 11 0 t11 0 t11 0 t11 0" stroke="#fff" stroke-width="3" fill="none"/><path d="M276 199 q3.5 4 7 0 t7 0 t7 0 t7 0" stroke="#fff" stroke-width="2.4" fill="none"/>
+    ${cs.map((x) => `<rect x="${x - 1.3}" y="182" width="2.6" height="10" fill="#7FC8F8"/><ellipse class="flame" cx="${x}" cy="179" rx="2.4" ry="3.8" fill="#FFC94D"/>`).join("")}
+    ${[[256, 226, "#FFD25A"], [322, 228, "#7FC8F8"], [262, 238, "#9BE08A"], [318, 240, "#C9A7FF"]].map(([x, y, c]) => `<rect x="${x}" y="${y}" width="4" height="6" rx="1" fill="${c}" transform="rotate(30 ${x} ${y})"/>`).join("")}</g>`;
 }
 
 /* ---------- комната в карточке питомца ---------- */
@@ -947,17 +1149,20 @@ function petRoomSvg(p, mode, spot) {
   const C = N ? { w1: "#3E3870", w2: "#2E2A58", st: .05, wn: "#3A3466", wl: "#4E4787", bb: "#5A5390", f1: "#6F5049", f2: "#4B3434", pl: "rgba(0,0,0,.28)", rug: "#9A5F86", rugB: "#C27BA6" }
     : E ? { w1: "#F6CDB8", w2: "#E9AE98", st: .2, wn: "#EDBBA6", wl: "#DC9A84", bb: "#FBE6DA", f1: "#CB8F5C", f2: "#A66D44", pl: "rgba(90,45,20,.24)", rug: "#F0A9B9", rugB: "#E27E9A" }
     : { w1: "#FFEDE3", w2: "#F8D2C0", st: .3, wn: "#F8DCCB", wl: "#EBBBA5", bb: "#FFF7F0", f1: "#DDAA74", f2: "#BC8452", pl: "rgba(110,60,25,.22)", rug: "#F7C0CC", rugB: "#EE8FA8" };
-  const sky = N ? ["#121A4A", "#343C86"] : E ? ["#7A78C6", "#FFB48E"] : ["#86C7FF", "#E2F5FF"];
+  const wk = p.weather?.kind, grey = ["snow", "rain", "storm", "fog", "cloud"].includes(wk);
+  const sky = N ? (grey ? ["#1E2340", "#3A3F66"] : ["#121A4A", "#343C86"]) : E ? (grey ? ["#8C86A8", "#C9A79E"] : ["#7A78C6", "#FFB48E"]) : grey ? (wk === "cloud" ? ["#A9C3DE", "#E3ECF5"] : ["#AEB8C8", "#DCE2EA"]) : ["#86C7FF", "#E2F5FF"];
   const win = `
     <rect x="266" y="84" width="96" height="98" rx="5" fill="#FBF3EA" stroke="#D9C2AE" stroke-width="1.4"/>
     <rect x="272" y="90" width="84" height="86" rx="2" fill="url(#pr-sky)"/>
-    ${N ? `${[[284, 104], [300, 132], [322, 100], [346, 120], [292, 160], [338, 150]].map(([x, y], i) => `<circle class="tw" style="animation-delay:${i * .45}s" cx="${x}" cy="${y}" r="1.2" fill="#fff"/>`).join("")}
-           <g transform="translate(334 110)"><circle r="16" fill="#FFF3C4" opacity=".14"/><path d="M0 -8A8 8 0 1 0 8 3.4A6.4 6.4 0 1 1 0 -8Z" fill="#FFF3C4"/></g>`
+    ${N && !grey ? `${[[284, 104], [300, 132], [322, 100], [346, 120], [292, 160], [338, 150]].map(([x, y], i) => `<circle class="tw" style="animation-delay:${i * .45}s" cx="${x}" cy="${y}" r="1.2" fill="#fff"/>`).join("")}
+           <g transform="translate(334 110)" opacity="${grey ? 0 : 1}"><circle r="16" fill="#FFF3C4" opacity=".14"/><path d="M0 -8A8 8 0 1 0 8 3.4A6.4 6.4 0 1 1 0 -8Z" fill="#FFF3C4"/></g>`
       : E ? `<circle cx="300" cy="160" r="20" fill="#FFE1A0" opacity=".35"/><circle cx="300" cy="160" r="11" fill="#FFD27A"/>`
-      : `<circle cx="336" cy="108" r="8" fill="#FFE27A"/><g class="cloud-slow"><ellipse cx="296" cy="116" rx="13" ry="5" fill="#fff"/><ellipse cx="306" cy="111" rx="8" ry="5.4" fill="#fff"/></g>`}
+      : grey ? "" : `<circle cx="336" cy="108" r="8" fill="#FFE27A"/><g class="cloud-slow"><ellipse cx="296" cy="116" rx="13" ry="5" fill="#fff"/><ellipse cx="306" cy="111" rx="8" ry="5.4" fill="#fff"/></g>`}
     <path d="M272,176 L282,158 L292,166 L304,150 L318,166 L330,156 L344,168 L356,160 V176Z" fill="${N ? "#1B2152" : E ? "#B07AA0" : "#9ED08C"}"/>
+    ${wk === "snow" ? `<path d="M272,176 L282,158 L292,166 L304,150 L318,166 L330,156 L344,168 L356,160 V176Z" fill="#F4F7FB"/>` : ""}
     ${N ? `<g fill="#FFD98A">${[[286, 168], [298, 162], [318, 170], [334, 164], [348, 170]].map(([x, y]) => `<rect x="${x}" y="${y}" width="2.4" height="2.4"/>`).join("")}</g>` : ""}
     <path d="M276,172 L304,94" stroke="#fff" stroke-opacity=".12" stroke-width="10"/>
+    ${windowWeather(p.weather)}
     <rect x="312.5" y="90" width="3" height="86" fill="#FBF3EA"/><rect x="272" y="131.5" width="84" height="3" fill="#FBF3EA"/>
     <rect x="260" y="180" width="108" height="6" rx="2" fill="#F4E7D8" stroke="#D9C2AE" stroke-width=".8"/>
     <g><rect x="336" y="168" width="14" height="12" rx="2" fill="#C97B4A"/><path d="M343,168 q-7,-9 -3,-16 q4,6 3,16 M343,168 q7,-8 4,-15 q-5,5 -4,15" fill="#58B573"/></g>
@@ -1010,6 +1215,7 @@ function petRoomSvg(p, mode, spot) {
       <radialGradient id="pr-door" cx=".5" cy=".7" r=".8"><stop offset="0" stop-color="#4A2E1E"/><stop offset="1" stop-color="#1C110B"/></radialGradient>
       <radialGradient id="pr-glow"><stop offset="0" stop-color="#FFE3A0" stop-opacity="${N ? .55 : .4}"/><stop offset="1" stop-color="#FFE3A0" stop-opacity="0"/></radialGradient>
       <radialGradient id="pr-vig" cx=".5" cy=".6" r=".8"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="${N ? .35 : .14}"/></radialGradient>
+      <clipPath id="pr-win"><rect x="272" y="90" width="84" height="86"/></clipPath>
       <linearGradient id="pr-fs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
     </defs>
     <rect width="400" height="300" fill="${C.f2}"/>
@@ -1027,7 +1233,7 @@ function petRoomSvg(p, mode, spot) {
     ${beam}${lamp}
     <ellipse cx="204" cy="252" rx="128" ry="25" fill="${C.rug}"/><ellipse cx="204" cy="252" rx="128" ry="25" fill="none" stroke="${C.rugB}" stroke-width="3"/>
     <ellipse cx="204" cy="252" rx="104" ry="19" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.4" stroke-dasharray="5 5"/>
-    ${doghouse}${toys}
+    ${doghouse}${toys}${bdayCake(p.birthday)}
     </g>
     <rect width="400" height="300" fill="url(#pr-vig)"/>
   </svg>`;
@@ -1096,6 +1302,7 @@ function taxSvg(P) {
       <path d="M100 98 C 132 98, 142 138, 138 176 C 135 200, 65 200, 62 176 C 58 138, 68 98, 100 98Z" fill="url(#${I}-body)"/>
       <path d="M74 120 C 72 140, 72 158, 76 176" stroke="#fff" stroke-opacity=".22" stroke-width="4" fill="none" stroke-linecap="round"/>
       <path d="M100 112 C 86 116, 82 146, 88 180 C 94 188, 106 188, 112 180 C 118 146, 114 116, 100 112Z" fill="url(#${I}-cream)"/>
+      ${P.neck === "sweater" ? SWEATER : ""}
       <path d="M85 170 C 81 184, 81 194, 84 204 H 98 C 99 194, 99 184, 97 170Z" fill="url(#${I}-leg)"/>
       <path d="M115 170 C 119 184, 119 194, 116 204 H 102 C 101 194, 101 184, 103 170Z" fill="url(#${I}-leg)"/>
       <ellipse cx="88" cy="205" rx="11" ry="5.4" fill="url(#${I}-cream)"/><ellipse cx="112" cy="205" rx="11" ry="5.4" fill="url(#${I}-cream)"/>
@@ -1103,6 +1310,7 @@ function taxSvg(P) {
       <path d="M76 120 Q100 138 124 120" stroke="${P.collar[0]}" stroke-width="8" stroke-linecap="round" fill="none"/>
       <path d="M76 117.6 Q100 135.6 124 117.6" stroke="${P.collar[1]}" stroke-opacity=".7" stroke-width="2" stroke-linecap="round" fill="none"/>
       <g class="tag"><circle cx="100" cy="135" r="6" fill="#FFD25A" stroke="#C99416" stroke-width="1.3"/><circle cx="98" cy="133" r="1.9" fill="#fff" opacity=".7"/></g>
+      ${neckWear(P.neck)}
     </g>
 
     <g class="bowl bowl-back">
@@ -1156,6 +1364,7 @@ function taxSvg(P) {
       <path class="mouth-sad" d="M91 118 Q100 110 109 118" stroke="${ink}" stroke-width="2" stroke-linecap="round" fill="none"/>
       <path class="mouth-open" d="M90 108 Q100 105 110 108 Q108 124 100 126 Q92 124 90 108Z" fill="#5A1F26"/>
       <path class="tongue" d="M94 112 Q100 132 106 112 Q100 109 94 112Z" fill="#F4708F"/>
+      ${headWear(P.head)}
     </g>
     <g class="bowl bowl-front">
       <ellipse cx="100" cy="213.5" rx="34" ry="3.4" fill="rgba(0,0,0,.18)"/>

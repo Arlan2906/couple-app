@@ -96,6 +96,15 @@ async def extras(slot: str, d, couple_id: int, members: list[User], force: bool,
             for u in members:
                 await notify(u.id, f"{ms['text']}!\n\nС праздником вас. Загляните в приложение — "
                                    f"там сегодня празднично", button="Открыть", tab="us")
+    if slot == "morning":
+        from .kulik import birthday
+        from .pet import get_pet
+        async with Session() as s:
+            pet = await get_pet(s, couple_id)
+        bd = birthday(pet, d) if pet else None
+        if bd and await once(f"bd:{couple_id}:{d.isoformat()}", force):
+            for u in members:
+                await notify(u.id, f"{bd['text']}\n\nЗагляните к нему — у него в комнате торт", button="Поздравить", tab="pet")
     if (weekly or (slot == "evening" and d.weekday() == 6)) and await once(f"week:{couple_id}:{d.isoformat()}", force):
         async with Session() as s:
             text = await weekly_text(s, couple_id, members, d)
