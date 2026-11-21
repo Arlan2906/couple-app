@@ -645,6 +645,7 @@ function drawPet(p) {
       success(); hearts(b.dataset.act === "feed" ? "+22 сытость" : "+12 радость", 1);
       const fig = wakePet(p);
       fig?.classList.add(`act-${b.dataset.act}`);   // собачка ест из миски / жмурится от удовольствия
+      state.dog3d?.act(b.dataset.act === "feed" ? "eat" : "pet", 2700);
       setTimeout(() => refreshHouse(d.pet), fig?.classList.contains("dogwrap") ? 2900 : 700);
     } catch { b.disabled = false; }
   }));
@@ -654,7 +655,7 @@ function drawPet(p) {
       const d = await api("/api/pet/walk", { method: "POST" });
       if (d.walked) {
         success(); hearts("+15 опыта", 1);
-        wakePet(p)?.classList.add("act-walk");
+        wakePet(p)?.classList.add("act-walk"); state.dog3d?.act("walk", 2200);
         toast("Погуляли вместе! +15 опыта и +25 радости");
         setTimeout(() => refreshHouse(d.pet), 2200);
       } else {
@@ -662,6 +663,7 @@ function drawPet(p) {
       }
     } catch { b.disabled = false; }
   });
+  mount3d(p, spot);
   $("#petTap").onclick = () => {
     haptic("soft"); const e = $(".pet-emoji");
     if (spot && !$(".pet-card").classList.contains("awake")) {
@@ -728,7 +730,8 @@ function wakePet(p) {
     card.classList.add("awake");
     $(".pet-stage .zzz")?.remove();
     fig.classList.remove("lying", "in-house");
-    if (p.kind === "dog") fig.innerHTML = dogSvg();
+    if (state.dog3d) state.dog3d.setBase("idle");
+    else if (p.kind === "dog") fig.innerHTML = dogSvg();
   }
   return fig;
 }
@@ -898,6 +901,28 @@ function updateBadges() {
 /* ---------- рисованная собачка ---------- */
 // Каждая часть тела — отдельная группа, её двигает CSS (.dog .tail, .head, .ear-l …).
 // Поведение зависит от классов на обёртке: st-happy / st-hungry / st-sad / st-bored, act-feed, act-pet, bark.
+/* ---------- 3D-Кулик (three.js), с запасным вариантом на рисунок ---------- */
+let dog3dMod = null;
+function webglOk() { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } }
+async function mount3d(p, spot) {
+  state.dog3d?.dispose(); state.dog3d = null;
+  const fig = $(".pet-emoji");
+  if (!fig || p.kind !== "dog" || p.stage === "egg" || spot === "house" || state.no3d || !webglOk()) return;
+  try {
+    dog3dMod ||= import("/static/dog3d.js?v=1");
+    const { Dog3D } = await dog3dMod;
+    if (!fig.isConnected) return;
+    const cv = document.createElement("canvas"); cv.className = "dog3d"; fig.appendChild(cv);
+    const d = new Dog3D(cv, { view: { az: 0.62, el: 0.2, dist: 3.7, ty: 0.52 } });
+    await d.loaded;
+    if (!cv.isConnected) { d.dispose(); return; }
+    const sleeping = spot && !$(".pet-card")?.classList.contains("awake");
+    d.setBase(sleeping ? "sleep" : ["happy"].includes(p.status) ? "happy" : ["hungry", "sad", "bored", "worried"].includes(p.status) ? "worried" : "idle");
+    d.setOutfit(outfitOf(p));
+    state.dog3d = d; fig.classList.add("has3d"); fig.classList.remove("lying");
+  } catch (e) { console.warn("3D не загрузился, остаётся рисунок", e); state.no3d = true; fig.querySelector("canvas")?.remove(); }
+}
+
 function petFigure(p) {
   return p.kind === "dog" ? dogSvg(outfitOf(p)) : p.emoji;
 }
@@ -953,7 +978,7 @@ function doTrick(t) {
   const stage = $("#petTap"), e = $(".pet-emoji");
   if (!e || e.dataset.trick) return;
   e.dataset.trick = t.id;
-  e.classList.add("trick", `trick-${t.id}`);
+  if (state.dog3d?.ready) state.dog3d.playTrick(t.id); else e.classList.add("trick", `trick-${t.id}`);
   const bub = document.createElement("span"); bub.className = "bark-bubble"; bub.textContent = TRICK_BUBBLE[t.id] || "Гав!";
   stage.appendChild(bub);
   const extra = document.createElement("div"); extra.className = `trick-fx fx-${t.id}`;

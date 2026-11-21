@@ -946,3 +946,9 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 @keyframes wxFlash { 0%, 90%, 94%, 100% { opacity: 0; } 91%, 93% { opacity: .8; } }
 .cake .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flame .5s ease-in-out infinite alternate; }
 @keyframes flame { to { transform: scale(.8, 1.15); } }
+
+/* 3D-Кулик */
+.dog3d { display: none; }
+.pet-emoji.has3d { animation: none !important; filter: none !important; width: 100%; display: flex; justify-content: center; margin-bottom: 0; }
+.pet-emoji.has3d > svg { display: none; }
+.pet-emoji.has3d .dog3d { display: block; width: min(340px, 94%); height: 250px; margin: -34px 0 -26px; pointer-events: none; }
