@@ -616,6 +616,7 @@ function drawPet(p) {
         <div class="shadow"></div>
       </div>
       ${p.birthday ? `<div class="pc-bday">${esc(p.birthday.text)}</div>` : ""}
+      ${p.letter ? `<button class="letter-pill" id="letterPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Письмо для тебя</button>` : ""}
       <div class="pet-status">${esc(p.status_text)}</div>
     </div>
     <div class="card stats-card">
@@ -670,6 +671,7 @@ function drawPet(p) {
       $("#petTap").appendChild(bub); setTimeout(() => bub.remove(), 1400);
       return;
     }
+    if (p.letter && e.classList.contains("dogwrap")) return openLetter();
     if (e.classList.contains("dogwrap") && p.tricks?.length) {
       if (e.dataset.trick) return;
       state.trickIdx = ((state.trickIdx ?? -1) + 1) % p.tricks.length;
@@ -686,6 +688,15 @@ function drawPet(p) {
     }
     e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing");
   };
+  const openLetter = () => {
+    if (!p.letter) return;
+    haptic();
+    openInfo(`<div class="letter-open"><div class="lt-env"><svg viewBox="0 0 80 56"><rect x="2" y="2" width="76" height="52" rx="7" fill="#FFF8EE" stroke="#E3A9B8" stroke-width="2.4"/><path d="M4 6 L40 32 L76 6" stroke="#E3A9B8" stroke-width="2.4" fill="none" stroke-linejoin="round"/><path d="M40 48 c-9-7-11-12-6.5-15 2.8-2 5.4-.8 6.5 1.2 1.1-2 3.7-3.2 6.5-1.2 4.5 3 2.5 8-6.5 15z" fill="#F0506E"/></svg></div>
+      <h3>Письмо для тебя</h3><p class="muted">от: ${esc(p.letter.from)}</p><p class="lt-big">${esc(p.letter.label)}</p><p class="lt-text">${esc(p.letter.text)}</p>
+      <p class="muted">${esc(p.name)} донёс его в зубах и не помял</p></div>`);
+    api("/api/kulik/letter/open", { method: "POST" }).then((d) => { success(); hearts("♥", 6); setTimeout(() => refreshHouse(d.pet), 600); }).catch(() => {});
+  };
+  $("#letterPill")?.addEventListener("click", openLetter);
   view.querySelectorAll("[data-carry]").forEach((b) => (b.onclick = async () => {
     b.disabled = true;
     try {
@@ -942,7 +953,7 @@ const SWEATER = `<g class="wear"><path d="M64 142 C 64 118, 80 106, 100 106 C 12
 function outfitOf(p) {
   const o = p.outfit || {};
   const cold = p.weather && (p.weather.kind === "snow" || p.weather.temp <= 0);
-  return { head: p.birthday ? "party" : o.head, neck: o.neck || (cold ? "scarf" : null) };
+  return { head: p.birthday ? "party" : o.head, neck: o.neck || (cold ? "scarf" : null), letter: !!p.letter };
 }
 
 /* ---------- трюки ---------- */
@@ -1274,10 +1285,24 @@ const TAX_COLORS = {
 };
 
 // такса сидит, вид спереди. Группы и центры совпадают с корги, чтобы работали все анимации.
+const LETTER_SVG = (I) => `<ellipse class="lt-shadow" cx="101" cy="141" rx="17" ry="3.6" fill="#000" opacity=".22"/>
+  <path d="M90 110.5 Q100 116 110 110.5 L110 113 Q100 119 90 113Z" fill="#4A1A20"/>
+  <g class="letter-mouth"><g transform="rotate(-7 100 113)">
+    <defs><linearGradient id="${I}-env" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFBF3"/><stop offset="1" stop-color="#EBDCC8"/></linearGradient></defs>
+    <path d="M83 113 L117.5 112.2 Q118.6 125 117 137.6 Q100 140 83.5 137.4 Q82.2 125 83 113Z" fill="url(#${I}-env)" stroke="#CDB79A" stroke-width="1"/>
+    <path d="M83.6 113.4 Q100 129.5 117.2 112.6 L100 128.6Z" fill="#F4E6D2" stroke="#CDB79A" stroke-width=".9" stroke-linejoin="round"/>
+    <path d="M84 136.6 L96 125.5 M116.6 136.8 L104.4 125.5" stroke="#CDB79A" stroke-width=".8" fill="none"/>
+    <path d="M100 133 c-4-3.2-4.9-5.4-2.9-6.8 1.3-.9 2.4-.4 2.9.6.5-1 1.6-1.5 2.9-.6 2 1.4 1.1 3.6-2.9 6.8z" fill="#E23A5C"/>
+    <path d="M98.8 127.8 q.9-.8 1.8-.1" stroke="#fff" stroke-opacity=".6" stroke-width=".9" fill="none" stroke-linecap="round"/>
+    <path d="M84 114.5 Q82.6 126 83.6 136.4" stroke="#fff" stroke-opacity=".7" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  </g></g>
+  <path d="M86.5 111.4 Q89 107.6 94.5 110.6 Q99.5 113.6 100 110.6 Q100.5 113.6 105.5 110.6 Q111 107.6 113.5 111.4 Q111.5 116 105 114.2 Q100 112.8 95 114.2 Q88.5 116 86.5 111.4Z" fill="url(#${I}-cream)"/>
+  <path d="M93.2 111.6 L95.4 116.8 L97.4 112.3Z M102.6 112.3 L104.6 116.8 L106.8 111.6Z" fill="#FFFDF8" stroke="#CDB79A" stroke-width=".5" stroke-linejoin="round"/>
+  <path d="M100 106 L100 110.4 M86.8 111.6 Q94 115 100 110.4 Q106 115 113.2 111.6" stroke="#2A1A16" stroke-width="1.8" stroke-linecap="round" fill="none"/>`;
 function taxSvg(P) {
   const I = P.id, ink = "#2A1A16";
   return `
-  <svg class="dog tax" viewBox="0 0 200 220" aria-label="такса">
+  <svg class="dog tax${P.letter ? " has-letter" : ""}" viewBox="0 0 200 220" aria-label="такса">
     <defs>
       <radialGradient id="${I}-fur" cx=".4" cy=".28" r=".85"><stop offset="0" stop-color="${P.fur[0]}"/><stop offset=".55" stop-color="${P.fur[1]}"/><stop offset="1" stop-color="${P.fur[2]}"/></radialGradient>
       <linearGradient id="${I}-body" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${P.fur[2]}"/><stop offset=".42" stop-color="${P.fur[0]}"/><stop offset=".7" stop-color="${P.fur[1]}"/><stop offset="1" stop-color="${P.fur[2]}"/></linearGradient>
@@ -1364,6 +1389,7 @@ function taxSvg(P) {
       <path class="mouth-sad" d="M91 118 Q100 110 109 118" stroke="${ink}" stroke-width="2" stroke-linecap="round" fill="none"/>
       <path class="mouth-open" d="M90 108 Q100 105 110 108 Q108 124 100 126 Q92 124 90 108Z" fill="#5A1F26"/>
       <path class="tongue" d="M94 112 Q100 132 106 112 Q100 109 94 112Z" fill="#F4708F"/>
+      ${P.letter ? LETTER_SVG(I) : ""}
       ${headWear(P.head)}
     </g>
     <g class="bowl bowl-front">

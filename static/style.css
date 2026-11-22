@@ -946,3 +946,16 @@ body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; bottom: 
 @keyframes wxFlash { 0%, 90%, 94%, 100% { opacity: 0; } 91%, 93% { opacity: .8; } }
 .cake .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flame .5s ease-in-out infinite alternate; }
 @keyframes flame { to { transform: scale(.8, 1.15); } }
+
+/* письмо в зубах у Кулика */
+.has-letter .mouth-smile, .has-letter .tongue, .has-letter .mouth-open, .has-letter .mouth-sad { display: none !important; }
+.letter-mouth { transform-box: view-box; transform-origin: 100px 112px; animation: letterSway 2.4s ease-in-out infinite; }
+@keyframes letterSway { 0%,100% { transform: rotate(0) translateY(0); } 50% { transform: rotate(3deg); } }
+.letter-pill { position: relative; z-index: 3; display: flex; align-items: center; gap: 6px; margin: 4px auto 0; padding: 7px 14px; border: 0; border-radius: 999px; font: inherit; font-weight: 800; font-size: 14px; color: #fff; background: #FF5C8A; box-shadow: 0 6px 14px rgba(255,92,138,.4); animation: pillPulse 1.8s ease-in-out infinite; }
+.letter-pill svg { width: 18px; height: 18px; }
+@keyframes pillPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.letter-open { text-align: center; padding: 6px 0 2px; }
+.lt-env { width: 96px; margin: 4px auto 8px; animation: ltPop .6s cubic-bezier(.3,1.5,.5,1); }
+@keyframes ltPop { from { transform: scale(.4) rotate(-12deg); opacity: 0; } }
+.lt-big { font-size: 30px; font-weight: 800; margin: 2px 0 4px; color: #E0457A; }
+.lt-text { font-size: 17px; font-weight: 700; margin: 0 0 6px; }
