@@ -39,6 +39,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(128))
     couple_id: Mapped[int | None] = mapped_column(ForeignKey("couples.id"), nullable=True)
     pet_seen_level: Mapped[int | None] = mapped_column(Integer, default=0, nullable=True)  # до какого уровня видел праздник
+    carry_seen_id: Mapped[int | None] = mapped_column(Integer, default=0, nullable=True)   # последнее прочитанное письмо от Кулика
 
 
 class Moment(Base):

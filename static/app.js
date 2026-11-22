@@ -616,6 +616,7 @@ function drawPet(p) {
         <div class="shadow"></div>
       </div>
       ${p.birthday ? `<div class="pc-bday">${esc(p.birthday.text)}</div>` : ""}
+      ${p.letter ? `<button class="letter-pill" id="letterPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Письмо для тебя</button>` : ""}
       <div class="pet-status">${esc(p.status_text)}</div>
     </div>
     <div class="card stats-card">
@@ -670,6 +671,7 @@ function drawPet(p) {
       $("#petTap").appendChild(bub); setTimeout(() => bub.remove(), 1400);
       return;
     }
+    if (p.letter && e.classList.contains("dogwrap")) return openLetter();
     if (e.classList.contains("dogwrap") && p.tricks?.length) {
       if (e.dataset.trick) return;
       state.trickIdx = ((state.trickIdx ?? -1) + 1) % p.tricks.length;
@@ -686,6 +688,15 @@ function drawPet(p) {
     }
     e.classList.remove("boing"); void e.offsetWidth; e.classList.add("boing");
   };
+  const openLetter = () => {
+    if (!p.letter) return;
+    haptic();
+    openInfo(`<div class="letter-open"><div class="lt-env"><svg viewBox="0 0 80 56"><rect x="2" y="2" width="76" height="52" rx="7" fill="#FFF8EE" stroke="#E3A9B8" stroke-width="2.4"/><path d="M4 6 L40 32 L76 6" stroke="#E3A9B8" stroke-width="2.4" fill="none" stroke-linejoin="round"/><path d="M40 48 c-9-7-11-12-6.5-15 2.8-2 5.4-.8 6.5 1.2 1.1-2 3.7-3.2 6.5-1.2 4.5 3 2.5 8-6.5 15z" fill="#F0506E"/></svg></div>
+      <h3>Письмо для тебя</h3><p class="muted">от: ${esc(p.letter.from)}</p><p class="lt-big">${esc(p.letter.label)}</p><p class="lt-text">${esc(p.letter.text)}</p>
+      <p class="muted">${esc(p.name)} донёс его в зубах и не помял</p></div>`);
+    api("/api/kulik/letter/open", { method: "POST" }).then((d) => { success(); hearts("♥", 6); setTimeout(() => refreshHouse(d.pet), 600); }).catch(() => {});
+  };
+  $("#letterPill")?.addEventListener("click", openLetter);
   view.querySelectorAll("[data-carry]").forEach((b) => (b.onclick = async () => {
     b.disabled = true;
     try {
@@ -942,7 +953,7 @@ const SWEATER = `<g class="wear"><path d="M64 142 C 64 118, 80 106, 100 106 C 12
 function outfitOf(p) {
   const o = p.outfit || {};
   const cold = p.weather && (p.weather.kind === "snow" || p.weather.temp <= 0);
-  return { head: p.birthday ? "party" : o.head, neck: o.neck || (cold ? "scarf" : null) };
+  return { head: p.birthday ? "party" : o.head, neck: o.neck || (cold ? "scarf" : null), letter: !!p.letter };
 }
 
 /* ---------- трюки ---------- */
@@ -1274,6 +1285,8 @@ const TAX_COLORS = {
 };
 
 // такса сидит, вид спереди. Группы и центры совпадают с корги, чтобы работали все анимации.
+const LETTER_SVG = `<g class="letter-mouth"><g transform="rotate(-9 100 120)"><rect x="82" y="108" width="36" height="25" rx="3.5" fill="#FFF8EE" stroke="#E3A9B8" stroke-width="1.6"/><path d="M83 110 L100 123 L117 110" stroke="#E3A9B8" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M100 129 c-4.4-3.4-5.4-5.8-3.2-7.4 1.4-1 2.7-.4 3.2.6.5-1 1.8-1.6 3.2-.6 2.2 1.6 1.2 4-3.2 7.4z" fill="#F0506E"/></g>
+  <path d="M80 114 Q84 118 88 115 M112 116 Q116 118 120 113" stroke="#2A1A16" stroke-width="1.8" stroke-linecap="round" fill="none"/></g>`;
 function taxSvg(P) {
   const I = P.id, ink = "#2A1A16";
   return `
@@ -1364,6 +1377,7 @@ function taxSvg(P) {
       <path class="mouth-sad" d="M91 118 Q100 110 109 118" stroke="${ink}" stroke-width="2" stroke-linecap="round" fill="none"/>
       <path class="mouth-open" d="M90 108 Q100 105 110 108 Q108 124 100 126 Q92 124 90 108Z" fill="#5A1F26"/>
       <path class="tongue" d="M94 112 Q100 132 106 112 Q100 109 94 112Z" fill="#F4708F"/>
+      ${P.letter ? LETTER_SVG : ""}
       ${headWear(P.head)}
     </g>
     <g class="bowl bowl-front">

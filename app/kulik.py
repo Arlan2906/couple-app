@@ -95,6 +95,24 @@ def birthday(pet: Pet, d: date) -> dict | None:
     return {"kind": "month", "n": months, "text": f"Праздник: {pet.name} с вами {months} {_pl(months, 'месяц', 'месяца', 'месяцев')}!"}
 
 
+LETTER_TEXT = {"kiss": "передаёт тебе воздушный поцелуй", "miss": "скучает по тебе", "hug": "крепко обнимает тебя", "love": "любит тебя"}
+
+
+async def pending_letter(s: AsyncSession, pet: Pet, user: User) -> dict | None:
+    """Непрочитанное письмо от второго: Кулик держит конверт в зубах, пока его не откроют."""
+    row = (await s.execute(select(PetAction).where(PetAction.pet_id == pet.id, PetAction.user_id != user.id,
+                                                   PetAction.action.like("carry_%"), PetAction.id > (user.carry_seen_id or 0))
+                           .order_by(PetAction.id.desc()).limit(1))).scalars().first()
+    if not row:
+        return None
+    kind = row.action[6:]
+    if kind not in CARRY:
+        return None
+    sender = await s.get(User, row.user_id)
+    name = sender.name if sender else "Второй"
+    return {"id": row.id, "kind": kind, "from": name, "text": f"{name} {LETTER_TEXT[kind]}", "label": CARRY[kind]}
+
+
 # ---------- дополнительные поля в /api/pet ----------
 async def extras(s: AsyncSession, pet: Pet, user: User) -> dict:
     egg = stage_for(pet.xp) == "egg"
@@ -105,6 +123,7 @@ async def extras(s: AsyncSession, pet: Pet, user: User) -> dict:
         levelup = {"from": seen, "to": lvl, **unlocked_between(seen, lvl)}
     today = datetime.now(TZ).date()
     return {
+        "letter": await pending_letter(s, pet, user),
         "tricks": [{"level": lv, "id": t[0], "name": t[1]} for lv, t in TRICKS.items() if lv <= lvl],
         "next_trick": next(({"level": lv, "name": t[1]} for lv, t in TRICKS.items() if lv > lvl), None),
         "wardrobe": [{"id": w[0], "slot": w[1], "name": w[2], "level": w[3], "unlocked": lvl >= w[3]} for w in WARDROBE],
@@ -124,6 +143,21 @@ async def seen(user: User = Depends(paired_user), s: AsyncSession = Depends(get_
         u.pet_seen_level = 0 if stage_for(pet.xp) == "egg" else level_for(pet.xp)
         await s.commit()
     return {"ok": True}
+
+
+@router.post("/letter/open")
+async def letter_open(user: User = Depends(paired_user), s: AsyncSession = Depends(get_session)):
+    """Открыли письмо: Кулик отдаёт конверт, и больше его в зубах нет."""
+    pet = await get_pet(s, user.couple_id)
+    if not pet:
+        raise HTTPException(404, "Питомца нет")
+    letter = await pending_letter(s, pet, user)
+    if letter:
+        u = await s.get(User, user.id)
+        u.carry_seen_id = letter["id"]
+        await s.commit()
+        user.carry_seen_id = letter["id"]
+    return {**await load(s, user), "opened": letter}
 
 
 class OutfitIn(BaseModel):
